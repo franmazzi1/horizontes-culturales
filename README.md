@@ -2,8 +2,8 @@
 
 🌐 [Versión en español](README.es.md)
 
-Website for Horizontes Culturales, a cultural space in Santa Fe, Argentina, 
-dedicated to spreading philosophy, literature, and art beyond academic settings.
+Official website for Horizontes Culturales, a cultural space based in Santa Fe, Argentina, dedicated to bringing philosophy, literature, and art closer to everyday life through reading groups, cultural events, and collective reflection.
+
 
 ## Tech Stack
 - **Backend:** Java 25, Spring Boot, Spring Data JPA, Maven

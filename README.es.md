@@ -2,8 +2,9 @@
 
 🌐 [English version](README.md)
 
-Sitio web para el espacio cultural Horizontes Culturales (Santa Fe, Argentina), 
-dedicado a la divulgación de filosofía, literatura y arte más allá del ámbito académico.
+Sitio web oficial para el espacio cultural Horizontes Culturales (Santa Fe, Argentina), 
+dedicado a la divulgación de filosofía, literatura y arte en la vida cotidiana mediante grupos de lectura, eventos culturales y la reflexión colectiva.
+
 
 ## Stack tecnológico
 - **Backend:** Java 25, Spring Boot, Spring Data JPA, Maven
