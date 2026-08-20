@@ -42,3 +42,9 @@ Con un solo Taller, no hay nada que agrupar o filtrar.
 **Razón (principio YAGNI):** agregar una entidad de categorización sin un caso de uso 
 concreto es complejidad prematura. Se revisita si en el futuro existen múltiples Talleres 
 que necesiten agruparse bajo un tema más amplio.
+### Notificaciones push de nuevos Grupos
+El visitante puede optar por recibir una notificación push del navegador (sin necesidad 
+de email ni cuenta) cuando se cree un nuevo Grupo — distinta de "todas las novedades".
+Requiere: entidad `SuscripcionPush` (guarda el endpoint que genera el navegador), 
+librería de envío (ej. web-push), claves VAPID, Service Worker en el frontend, y HTTPS 
+en producción. No forma parte de la Fase A — se evalúa una vez estabilizado el core.
