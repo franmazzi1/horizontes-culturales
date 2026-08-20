@@ -30,3 +30,15 @@ Implicaría dos entidades nuevas aproximadas: `Producto` (nombre, descripción, 
 imagen, disponibilidad) y `SolicitudConsulta` (datos del formulario: nombre, contacto, 
 producto de interés, fecha). No forma parte de la Fase A actual — se evalúa como 
 actualización posterior, una vez estabilizado el core (Talleres/Grupos/Eventos/Novedades).
+
+## ADR 002: Taller sin campo de categoría
+
+**Contexto:** se evaluó agregar un campo `categoria` (o una entidad `CategoriaTaller`) 
+para clasificar talleres.
+
+**Decisión:** no se agrega. El nombre del Taller ya comunica su temática (hoy: "Filosofía"). 
+Con un solo Taller, no hay nada que agrupar o filtrar.
+
+**Razón (principio YAGNI):** agregar una entidad de categorización sin un caso de uso 
+concreto es complejidad prematura. Se revisita si en el futuro existen múltiples Talleres 
+que necesiten agruparse bajo un tema más amplio.
