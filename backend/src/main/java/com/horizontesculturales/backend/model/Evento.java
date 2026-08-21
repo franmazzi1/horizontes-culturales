@@ -1,6 +1,5 @@
 package com.horizontesculturales.backend.model;
 
-
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -15,13 +14,14 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "eventos")
 public class Evento {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String descripcion;
-    
+
     @Column(columnDefinition = "TEXT")
     private String cronica;
 
@@ -38,8 +38,13 @@ public class Evento {
     @JoinColumn(name = "categoria_evento_id", nullable = false)
     private CategoriaEvento categoriaEvento;
 
+    @ManyToOne
+    @JoinColumn(name = "expositor_id")
+    private Persona expositor;
+
     public Evento() {
     }
+
     public Evento(String descripcion, LocalDate fecha, String lugar, boolean destacado, CategoriaEvento categoriaEvento) {
         this.descripcion = descripcion;
         this.fecha = fecha;
@@ -47,6 +52,7 @@ public class Evento {
         this.destacado = destacado;
         this.categoriaEvento = categoriaEvento;
     }
+
     public Long getId() {
         return id;
     }
@@ -89,6 +95,10 @@ public class Evento {
     public void setCategoriaEvento(CategoriaEvento categoriaEvento) {
         this.categoriaEvento = categoriaEvento;
     }
-    
-
+    public Persona getExpositor() {
+        return expositor;
+    }
+    public void setExpositor(Persona expositor) {
+        this.expositor = expositor;
+    }
 }

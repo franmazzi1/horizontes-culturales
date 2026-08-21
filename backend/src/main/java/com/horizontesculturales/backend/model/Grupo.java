@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "grupos")
 public class Grupo {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -63,7 +64,6 @@ public class Grupo {
     public void setModalidad(String modalidad) {
         this.modalidad = modalidad;
     }
-
     public Taller getTaller() {
         return taller;
     }
