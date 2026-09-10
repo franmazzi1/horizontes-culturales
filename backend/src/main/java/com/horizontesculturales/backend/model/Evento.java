@@ -2,6 +2,9 @@ package com.horizontesculturales.backend.model;
 
 import java.time.LocalDate;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,6 +39,7 @@ public class Evento {
 
     @ManyToOne
     @JoinColumn(name = "categoria_evento_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private CategoriaEvento categoriaEvento;
 
     @ManyToOne

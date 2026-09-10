@@ -1,5 +1,8 @@
 package com.horizontesculturales.backend.model;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,18 +25,22 @@ public class ImagenGaleria {
 
     @ManyToOne
     @JoinColumn(name = "evento_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Evento evento;
 
     @ManyToOne
     @JoinColumn(name = "novedad_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Novedad novedad;
 
     @ManyToOne
     @JoinColumn(name = "taller_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Taller taller;
 
     @ManyToOne
     @JoinColumn(name = "persona_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Persona persona;
 
     public ImagenGaleria() {

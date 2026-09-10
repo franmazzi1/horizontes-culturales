@@ -32,17 +32,9 @@ public class Novedad {
     private boolean destacado;
 
     @ManyToOne
-    @JoinColumn(name = "taller_id")
-    private Taller taller;
-
-    @ManyToOne
     @JoinColumn(name = "evento_id")
-    private Evento evento;
-
-    @ManyToOne
-    @JoinColumn(name = "grupo_id")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private Grupo grupo;
+    private Evento evento;
 
     public Novedad() {
     }
@@ -76,22 +68,10 @@ public class Novedad {
     public void setDestacado(boolean destacado) {
         this.destacado = destacado;
     }
-    public Taller getTaller() {
-        return taller;
-    }
-    public void setTaller(Taller taller) {
-        this.taller = taller;
-    }
     public Evento getEvento() {
         return evento;
     }
     public void setEvento(Evento evento) {
         this.evento = evento;
-    }
-    public Grupo getGrupo() {
-        return grupo;
-    }
-    public void setGrupo(Grupo grupo) {
-        this.grupo = grupo;
     }
 }

@@ -1,5 +1,8 @@
 package com.horizontesculturales.backend.model;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -28,6 +31,7 @@ public class Grupo {
 
     @ManyToOne
     @JoinColumn(name = "taller_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Taller taller;
 
     public Grupo() {

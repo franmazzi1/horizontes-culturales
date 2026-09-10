@@ -121,3 +121,26 @@ Depende de que exista Usuario (Fase B) — con persistencia y moderación antes 
 - Buscador de Novedades.
 - Navegación condicional: si hay un único Taller, se accede directo sin listado intermedio.
 - Lógica de "últimas N destacadas, o últimas por fecha si no hay destacadas" (capa service).
+
+### ADR 006: Revisión del ciclo de vida de Evento, Taller y Persona
+**Decisión anterior (Fase A):** Evento, Taller y Persona nunca se eliminan (historial permanente).
+
+**Nueva decisión:** Evento y Taller pasan a eliminarse manualmente desde el panel admin.
+Persona se elimina de forma condicional: solo cuando, al eliminarse el Evento o Taller
+que la referenciaba, no le queda ninguna otra referencia activa en el sistema (ni como
+expositora de otro Evento, ni como profesora de otro Taller).
+
+**Cascadas asociadas:**
+- Grupo → Taller: `@OnDelete(CASCADE)`. Si se borra el Taller, sus Grupos se borran con él.
+- Novedad → Evento: `@OnDelete(CASCADE)`. Si se borra el Evento, la Novedad asociada
+  se borra con él.
+- Novedad → Grupo: ya existente desde Fase A, sin cambios.
+
+**Razón del cambio:** se prioriza la limpieza de datos sobre la preservación de historial
+completo. Se acepta como trade-off consciente que, a futuro, no va a existir un registro
+histórico de Eventos/Talleres pasados una vez eliminados.
+
+**Nota:** este ADR reemplaza el criterio de "historial permanente" para estas tres
+entidades, definido originalmente en el ADR de Fase A. Persona sigue sin eliminarse
+directamente por acción manual — solo como efecto de que se elimine la última entidad
+que la referencia.
