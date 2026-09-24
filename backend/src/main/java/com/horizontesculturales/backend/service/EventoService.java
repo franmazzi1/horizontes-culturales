@@ -6,15 +6,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.horizontesculturales.backend.model.Evento;
+import com.horizontesculturales.backend.model.Novedad;
 import com.horizontesculturales.backend.repository.EventoRepository;
 
 @Service
 public class EventoService {
 
     private final EventoRepository eventoRepository;
+    private final NovedadService novedadService;
 
-    public EventoService(EventoRepository eventoRepository) {
+    public EventoService(EventoRepository eventoRepository,NovedadService novedadService) {
         this.eventoRepository = eventoRepository;
+        this.novedadService = novedadService;
     }
 
     public List<Evento> obtenerTodos() {
@@ -44,7 +47,16 @@ public class EventoService {
     }
 
     public Evento crear(Evento evento) {
-        return eventoRepository.save(evento);
+        Evento eventoGuardado = eventoRepository.save(evento);
+
+        Novedad novedad = new Novedad(
+            "Nuevo evento: " + eventoGuardado.getDescripcion(),
+            LocalDate.now()
+        );
+        novedad.setEvento(eventoGuardado);
+        novedadService.crear(novedad);
+
+        return eventoGuardado;
     }
 
     public Evento actualizar(Long id, Evento datosNuevos) {
