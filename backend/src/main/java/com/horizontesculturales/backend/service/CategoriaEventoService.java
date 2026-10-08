@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.horizontesculturales.backend.model.CategoriaEvento;
 import com.horizontesculturales.backend.repository.CategoriaEventoRepository;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class CategoriaEventoService {
@@ -22,7 +23,7 @@ public class CategoriaEventoService {
 
     public CategoriaEvento obtenerPorId(Long id) {
         return categoriaEventoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("CategoriaEvento no encontrada con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Categoría de Evento", id));
     }
 
     public CategoriaEvento crear(CategoriaEvento categoria) {

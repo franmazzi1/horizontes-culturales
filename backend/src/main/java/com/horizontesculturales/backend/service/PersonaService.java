@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 import com.horizontesculturales.backend.model.Persona;
 import com.horizontesculturales.backend.repository.EventoRepository;
 import com.horizontesculturales.backend.repository.PersonaRepository;
 import com.horizontesculturales.backend.repository.TallerRepository;
+import com.horizontesculturales.backend.exception.ReglaDeNegocioException;
 
 @Service
 public class PersonaService {
@@ -28,7 +30,7 @@ public class PersonaService {
 
     public Persona obtenerPorId(Long id) {
         return this.personaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Persona no encontrada con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Persona", id));
     }
 
     public Persona crear(Persona persona) {
@@ -42,11 +44,12 @@ public class PersonaService {
         boolean tieneEvento = eventoRepository.existsByExpositor(persona);
 
         if (tieneTaller || tieneEvento) {
-            throw new RuntimeException("No se puede eliminar: la Persona tiene referencias activas");
-        }   
+            throw new ReglaDeNegocioException("No se puede eliminar: la Persona tiene referencias activas");
+        }
 
         personaRepository.deleteById(id);
     }
+
     public Persona actualizar(Long id, Persona datosNuevos) {
         Persona persona = obtenerPorId(id);
 
@@ -55,6 +58,4 @@ public class PersonaService {
 
         return personaRepository.save(persona);
     }
-
-    
 }

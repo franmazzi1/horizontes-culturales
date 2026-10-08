@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.horizontesculturales.backend.model.Grupo;
 import com.horizontesculturales.backend.model.Taller;
 import com.horizontesculturales.backend.repository.GrupoRepository;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class GrupoService {
@@ -23,7 +24,7 @@ public class GrupoService {
 
     public Grupo obtenerPorId(Long id) {
         return grupoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Grupo no encontrado con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Grupo", id));
     }
 
     public Grupo crear(Grupo grupo) {

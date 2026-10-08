@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.horizontesculturales.backend.model.Novedad;
 import com.horizontesculturales.backend.repository.NovedadRepository;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class NovedadService {
@@ -27,7 +28,7 @@ public class NovedadService {
 
     public Novedad obtenerPorId(Long id) {
         return novedadRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Novedad no encontrada con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Novedad", id));
     }
 
     public Novedad crear(Novedad novedad) {

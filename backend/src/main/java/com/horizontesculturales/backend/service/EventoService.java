@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.horizontesculturales.backend.model.Evento;
 import com.horizontesculturales.backend.model.Novedad;
 import com.horizontesculturales.backend.repository.EventoRepository;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class EventoService {
@@ -26,7 +27,7 @@ public class EventoService {
 
     public Evento obtenerPorId(Long id) {
         return eventoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Evento no encontrado con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Evento", id));
     }
 
     public List<Evento> obtenerParaPortada() {

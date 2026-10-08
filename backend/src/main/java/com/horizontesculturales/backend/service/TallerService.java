@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.horizontesculturales.backend.model.Taller;
 import com.horizontesculturales.backend.repository.TallerRepository;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class TallerService {
@@ -22,7 +23,7 @@ public class TallerService {
 
     public Taller obtenerPorId(Long id) {
         return tallerRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Taller no encontrado con id " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Taller", id));
     }
 
     public Taller crear(Taller taller) {
