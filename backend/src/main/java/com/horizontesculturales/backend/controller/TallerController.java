@@ -13,43 +13,43 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.Persona;
-import com.horizontesculturales.backend.service.PersonaService;
+import com.horizontesculturales.backend.model.Taller;
+import com.horizontesculturales.backend.service.TallerService;
 
 @RestController
-@RequestMapping("/personas")
-public class PersonaController {
+@RequestMapping("/talleres")
+public class TallerController {
 
-    private final PersonaService personaService;
+    private final TallerService tallerService;
 
-    public PersonaController(PersonaService personaService) {
-        this.personaService = personaService;
+    public TallerController(TallerService tallerService) {
+        this.tallerService = tallerService;
     }
 
     @GetMapping
-    public List<Persona> obtenerTodas() {
-        return personaService.obtenerTodas();
+    public List<Taller> obtenerTodos() {
+        return tallerService.obtenerTodos();
     }
 
     @GetMapping("/{id}")
-    public Persona obtenerPorId(@PathVariable Long id) {
-        return personaService.obtenerPorId(id);
+    public Taller obtenerPorId(@PathVariable Long id) {
+        return tallerService.obtenerPorId(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Persona crear(@RequestBody Persona persona) {
-        return personaService.crear(persona);
+    public Taller crear(@RequestBody Taller taller) {
+        return tallerService.crear(taller);
     }
 
     @PutMapping("/{id}")
-    public Persona actualizar(@PathVariable Long id, @RequestBody Persona datosNuevos) {
-        return personaService.actualizar(id, datosNuevos);
+    public Taller actualizar(@PathVariable Long id, @RequestBody Taller datosNuevos) {
+        return tallerService.actualizar(id, datosNuevos);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable Long id) {
-        personaService.eliminar(id);
+        tallerService.eliminar(id);
     }
 }
