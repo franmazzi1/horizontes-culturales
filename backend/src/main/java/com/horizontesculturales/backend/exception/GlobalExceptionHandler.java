@@ -4,6 +4,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -15,5 +19,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReglaDeNegocioException.class)
     public ProblemDetail manejarReglaDeNegocio(ReglaDeNegocioException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail manejarValidacion(MethodArgumentNotValidException ex) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+            .forEach(error -> errores.put(error.getField(), error.getDefaultMessage()));
+
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST, "Hay datos incorrectos en el formulario");
+        problema.setProperty("errores", errores);
+        return problema;
     }
 }
