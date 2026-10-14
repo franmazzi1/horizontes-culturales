@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.Taller;
+import com.horizontesculturales.backend.dto.TallerRequest;
+import com.horizontesculturales.backend.dto.TallerResponse;
 import com.horizontesculturales.backend.service.TallerService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/talleres")
@@ -27,24 +30,26 @@ public class TallerController {
     }
 
     @GetMapping
-    public List<Taller> obtenerTodos() {
-        return tallerService.obtenerTodos();
+    public List<TallerResponse> obtenerTodos() {
+        return tallerService.obtenerTodos().stream()
+            .map(TallerResponse::desde)
+            .toList();
     }
 
     @GetMapping("/{id}")
-    public Taller obtenerPorId(@PathVariable Long id) {
-        return tallerService.obtenerPorId(id);
+    public TallerResponse obtenerPorId(@PathVariable Long id) {
+        return TallerResponse.desde(tallerService.obtenerPorId(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Taller crear(@RequestBody Taller taller) {
-        return tallerService.crear(taller);
+    public TallerResponse crear(@Valid @RequestBody TallerRequest request) {
+        return TallerResponse.desde(tallerService.crear(request));
     }
 
     @PutMapping("/{id}")
-    public Taller actualizar(@PathVariable Long id, @RequestBody Taller datosNuevos) {
-        return tallerService.actualizar(id, datosNuevos);
+    public TallerResponse actualizar(@PathVariable Long id, @Valid @RequestBody TallerRequest request) {
+        return TallerResponse.desde(tallerService.actualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

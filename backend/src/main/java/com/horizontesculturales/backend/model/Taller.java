@@ -1,12 +1,16 @@
 package com.horizontesculturales.backend.model;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -23,17 +27,21 @@ public class Taller {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String descripcion;
 
-    @ManyToOne
-    @JoinColumn(name = "profesor_id", nullable = false)
-    private Persona profesor;
+    @ManyToMany
+    @JoinTable(
+        name = "taller_profesores",
+        joinColumns = @JoinColumn(name = "taller_id"),
+        inverseJoinColumns = @JoinColumn(name = "persona_id")
+    )
+    private Set<Persona> profesores = new HashSet<>();
 
     public Taller() {
     }
 
-    public Taller(String nombre, String descripcion, Persona profesor) {
+    public Taller(String nombre, String descripcion, Set<Persona> profesores) {
         this.nombre = nombre;
         this.descripcion = descripcion;
-        this.profesor = profesor;
+        this.profesores = profesores;
     }
 
     public Long getId() {
@@ -54,10 +62,10 @@ public class Taller {
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
     }
-    public Persona getProfesor() {
-        return profesor;
+    public Set<Persona> getProfesores() {
+        return profesores;
     }
-    public void setProfesor(Persona profesor) {
-        this.profesor = profesor;
+    public void setProfesores(Set<Persona> profesores) {
+        this.profesores = profesores;
     }
 }

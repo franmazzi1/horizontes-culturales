@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.Persona;
+import com.horizontesculturales.backend.dto.PersonaRequest;
+import com.horizontesculturales.backend.dto.PersonaResponse;
 import com.horizontesculturales.backend.service.PersonaService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/personas")
@@ -27,24 +30,26 @@ public class PersonaController {
     }
 
     @GetMapping
-    public List<Persona> obtenerTodas() {
-        return personaService.obtenerTodas();
+    public List<PersonaResponse> obtenerTodas() {
+        return personaService.obtenerTodas().stream()
+            .map(PersonaResponse::desde)
+            .toList();
     }
 
     @GetMapping("/{id}")
-    public Persona obtenerPorId(@PathVariable Long id) {
-        return personaService.obtenerPorId(id);
+    public PersonaResponse obtenerPorId(@PathVariable Long id) {
+        return PersonaResponse.desde(personaService.obtenerPorId(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Persona crear(@RequestBody Persona persona) {
-        return personaService.crear(persona);
+    public PersonaResponse crear(@Valid @RequestBody PersonaRequest request) {
+        return PersonaResponse.desde(personaService.crear(request));
     }
 
     @PutMapping("/{id}")
-    public Persona actualizar(@PathVariable Long id, @RequestBody Persona datosNuevos) {
-        return personaService.actualizar(id, datosNuevos);
+    public PersonaResponse actualizar(@PathVariable Long id, @Valid @RequestBody PersonaRequest request) {
+        return PersonaResponse.desde(personaService.actualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

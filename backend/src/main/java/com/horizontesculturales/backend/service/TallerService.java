@@ -1,20 +1,25 @@
 package com.horizontesculturales.backend.service;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
+import com.horizontesculturales.backend.dto.TallerRequest;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
+import com.horizontesculturales.backend.model.Persona;
 import com.horizontesculturales.backend.model.Taller;
 import com.horizontesculturales.backend.repository.TallerRepository;
-import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class TallerService {
 
     private final TallerRepository tallerRepository;
+    private final PersonaService personaService;
 
-    public TallerService(TallerRepository tallerRepository) {
+    public TallerService(TallerRepository tallerRepository, PersonaService personaService) {
         this.tallerRepository = tallerRepository;
+        this.personaService = personaService;
     }
 
     public List<Taller> obtenerTodos() {
@@ -26,15 +31,18 @@ public class TallerService {
             .orElseThrow(() -> new RecursoNoEncontradoException("Taller", id));
     }
 
-    public Taller crear(Taller taller) {
+    public Taller crear(TallerRequest request) {
+        Set<Persona> profesores = personaService.obtenerPorIds(request.profesorIds());
+        Taller taller = new Taller(request.nombre(), request.descripcion(), profesores);
         return tallerRepository.save(taller);
     }
 
-    public Taller actualizar(Long id, Taller datosNuevos) {
+    public Taller actualizar(Long id, TallerRequest request) {
         Taller taller = obtenerPorId(id);
-        taller.setNombre(datosNuevos.getNombre());
-        taller.setDescripcion(datosNuevos.getDescripcion());
-        taller.setProfesor(datosNuevos.getProfesor());
+        Set<Persona> profesores = personaService.obtenerPorIds(request.profesorIds());
+        taller.setNombre(request.nombre());
+        taller.setDescripcion(request.descripcion());
+        taller.setProfesores(profesores);
         return tallerRepository.save(taller);
     }
 

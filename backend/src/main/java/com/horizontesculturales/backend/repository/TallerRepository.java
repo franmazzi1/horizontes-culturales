@@ -6,5 +6,5 @@ import com.horizontesculturales.backend.model.Persona;
 import com.horizontesculturales.backend.model.Taller;
 
 public interface TallerRepository extends JpaRepository<Taller, Long> {
-    boolean existsByProfesor(Persona profesor);
+    boolean existsByProfesoresContaining(Persona profesor);
 }

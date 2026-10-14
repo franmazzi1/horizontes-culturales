@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.Novedad;
+import com.horizontesculturales.backend.dto.NovedadRequest;
+import com.horizontesculturales.backend.dto.NovedadResponse;
 import com.horizontesculturales.backend.service.NovedadService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/novedades")
@@ -27,24 +30,24 @@ public class NovedadController {
     }
 
     @GetMapping("/portada")
-    public List<Novedad> obtenerParaPortada() {
-        return novedadService.obtenerParaPortada();
+    public List<NovedadResponse> obtenerParaPortada() {
+        return novedadService.obtenerParaPortada().stream().map(NovedadResponse::desde).toList();
     }
 
     @GetMapping("/{id}")
-    public Novedad obtenerPorId(@PathVariable Long id) {
-        return novedadService.obtenerPorId(id);
+    public NovedadResponse obtenerPorId(@PathVariable Long id) {
+        return NovedadResponse.desde(novedadService.obtenerPorId(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Novedad crear(@RequestBody Novedad novedad) {
-        return novedadService.crear(novedad);
+    public NovedadResponse crear(@Valid @RequestBody NovedadRequest request) {
+        return NovedadResponse.desde(novedadService.crear(request));
     }
 
     @PutMapping("/{id}")
-    public Novedad actualizar(@PathVariable Long id, @RequestBody Novedad datosNuevos) {
-        return novedadService.actualizar(id, datosNuevos);
+    public NovedadResponse actualizar(@PathVariable Long id, @Valid @RequestBody NovedadRequest request) {
+        return NovedadResponse.desde(novedadService.actualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

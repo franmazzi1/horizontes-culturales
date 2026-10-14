@@ -22,6 +22,9 @@ public class Novedad {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 150)
+    private String titulo;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenido;
 
@@ -39,7 +42,8 @@ public class Novedad {
     public Novedad() {
     }
 
-    public Novedad(String contenido, LocalDate fecha) {
+    public Novedad(String titulo, String contenido, LocalDate fecha) {
+        this.titulo = titulo;
         this.contenido = contenido;
         this.fecha = fecha;
     }
@@ -49,6 +53,12 @@ public class Novedad {
     }
     public void setId(Long id) {
         this.id = id;
+    }
+    public String getTitulo() {
+        return titulo;
+    }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
     }
     public String getContenido() {
         return contenido;
@@ -73,5 +83,8 @@ public class Novedad {
     }
     public void setEvento(Evento evento) {
         this.evento = evento;
+    }
+    public boolean estaDestacada() {
+        return evento != null ? evento.isDestacado() : destacado;
     }
 }

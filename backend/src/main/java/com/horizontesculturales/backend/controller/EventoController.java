@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.Evento;
+import com.horizontesculturales.backend.dto.EventoRequest;
+import com.horizontesculturales.backend.dto.EventoResponse;
 import com.horizontesculturales.backend.service.EventoService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/eventos")
@@ -27,39 +30,39 @@ public class EventoController {
     }
 
     @GetMapping
-    public List<Evento> obtenerTodos() {
-        return eventoService.obtenerTodos();
+    public List<EventoResponse> obtenerTodos() {
+        return eventoService.obtenerTodos().stream().map(EventoResponse::desde).toList();
     }
 
     @GetMapping("/portada")
-    public List<Evento> obtenerParaPortada() {
-        return eventoService.obtenerParaPortada();
+    public List<EventoResponse> obtenerParaPortada() {
+        return eventoService.obtenerParaPortada().stream().map(EventoResponse::desde).toList();
     }
 
     @GetMapping("/proximos")
-    public List<Evento> obtenerProximos() {
-        return eventoService.obtenerProximos();
+    public List<EventoResponse> obtenerProximos() {
+        return eventoService.obtenerProximos().stream().map(EventoResponse::desde).toList();
     }
 
     @GetMapping("/realizados")
-    public List<Evento> obtenerRealizados() {
-        return eventoService.obtenerRealizados();
+    public List<EventoResponse> obtenerRealizados() {
+        return eventoService.obtenerRealizados().stream().map(EventoResponse::desde).toList();
     }
 
     @GetMapping("/{id}")
-    public Evento obtenerPorId(@PathVariable Long id) {
-        return eventoService.obtenerPorId(id);
+    public EventoResponse obtenerPorId(@PathVariable Long id) {
+        return EventoResponse.desde(eventoService.obtenerPorId(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Evento crear(@RequestBody Evento evento) {
-        return eventoService.crear(evento);
+    public EventoResponse crear(@Valid @RequestBody EventoRequest request) {
+        return EventoResponse.desde(eventoService.crear(request));
     }
 
     @PutMapping("/{id}")
-    public Evento actualizar(@PathVariable Long id, @RequestBody Evento datosNuevos) {
-        return eventoService.actualizar(id, datosNuevos);
+    public EventoResponse actualizar(@PathVariable Long id, @Valid @RequestBody EventoRequest request) {
+        return EventoResponse.desde(eventoService.actualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
