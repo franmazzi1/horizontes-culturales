@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.horizontesculturales.backend.model.CategoriaEvento;
+import com.horizontesculturales.backend.dto.CategoriaEventoRequest;
+import com.horizontesculturales.backend.dto.CategoriaEventoResponse;
 import com.horizontesculturales.backend.service.CategoriaEventoService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/categorias-evento")
@@ -27,24 +30,26 @@ public class CategoriaEventoController {
     }
 
     @GetMapping
-    public List<CategoriaEvento> obtenerTodas() {
-        return categoriaEventoService.obtenerTodas();
+    public List<CategoriaEventoResponse> obtenerTodas() {
+        return categoriaEventoService.obtenerTodas().stream()
+            .map(CategoriaEventoResponse::desde)
+            .toList();
     }
 
     @GetMapping("/{id}")
-    public CategoriaEvento obtenerPorId(@PathVariable Long id) {
-        return categoriaEventoService.obtenerPorId(id);
+    public CategoriaEventoResponse obtenerPorId(@PathVariable Long id) {
+        return CategoriaEventoResponse.desde(categoriaEventoService.obtenerPorId(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoriaEvento crear(@RequestBody CategoriaEvento categoria) {
-        return categoriaEventoService.crear(categoria);
+    public CategoriaEventoResponse crear(@Valid @RequestBody CategoriaEventoRequest request) {
+        return CategoriaEventoResponse.desde(categoriaEventoService.crear(request));
     }
 
     @PutMapping("/{id}")
-    public CategoriaEvento actualizar(@PathVariable Long id, @RequestBody CategoriaEvento datosNuevos) {
-        return categoriaEventoService.actualizar(id, datosNuevos);
+    public CategoriaEventoResponse actualizar(@PathVariable Long id, @Valid @RequestBody CategoriaEventoRequest request) {
+        return CategoriaEventoResponse.desde(categoriaEventoService.actualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

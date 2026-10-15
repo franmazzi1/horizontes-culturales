@@ -4,9 +4,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.horizontesculturales.backend.dto.CategoriaEventoRequest;
+import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 import com.horizontesculturales.backend.model.CategoriaEvento;
 import com.horizontesculturales.backend.repository.CategoriaEventoRepository;
-import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 
 @Service
 public class CategoriaEventoService {
@@ -23,23 +24,25 @@ public class CategoriaEventoService {
 
     public CategoriaEvento obtenerPorId(Long id) {
         return categoriaEventoRepository.findById(id)
-            .orElseThrow(() -> new RecursoNoEncontradoException("Categoría de Evento", id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("CategoriaEvento", id));
     }
 
-    public CategoriaEvento crear(CategoriaEvento categoria) {
+    public CategoriaEvento crear(CategoriaEventoRequest request) {
+        CategoriaEvento categoria = new CategoriaEvento(
+            request.nombre(), request.descripcion(), request.imagenUrl());
         return categoriaEventoRepository.save(categoria);
     }
 
-    public CategoriaEvento actualizar(Long id, CategoriaEvento datosNuevos) {
+    public CategoriaEvento actualizar(Long id, CategoriaEventoRequest request) {
         CategoriaEvento categoria = obtenerPorId(id);
-        categoria.setNombre(datosNuevos.getNombre());
-        categoria.setDescripcion(datosNuevos.getDescripcion());
-        categoria.setImagenUrl(datosNuevos.getImagenUrl());
+        categoria.setNombre(request.nombre());
+        categoria.setDescripcion(request.descripcion());
+        categoria.setImagenUrl(request.imagenUrl());
         return categoriaEventoRepository.save(categoria);
     }
 
     public void eliminar(Long id) {
-        obtenerPorId(id); // valida que exista
+        obtenerPorId(id);
         categoriaEventoRepository.deleteById(id);
     }
 }
