@@ -1,146 +1,244 @@
 # Decisiones de Arquitectura — Horizontes Culturales
 
-## Cómo funciona la página (resumen funcional)
+> Documento vivo. Describe el estado **actual** del proyecto y el porqué de cada
+> decisión. Las decisiones que reemplazan a otras anteriores lo indican.
+> Última revisión: octubre de 2026.
+
+## 1. Visión general
+
+Sitio web real para un espacio cultural de Santa Fe (talleres de filosofía, eventos,
+novedades). Proyecto de aprendizaje guiado, con foco en buenas prácticas y en que sea
+**entregable**: quien lo administre no sabe programar, y el desarrollador no debería
+tener que intervenir después de entregarlo.
+
+**Stack:** Java 25, Spring Boot 4.1, Spring Web MVC, Spring Data JPA, Hibernate,
+Bean Validation, PostgreSQL 18, Maven. Frontend en HTML/CSS/JavaScript puro (Fetch API).
+
+**Arquitectura:** backend como API REST pura, y clientes que la consumen (sitio público
+y panel de administración). Capas del backend:
+
+```
+model/       entidades JPA (qué datos existen y cómo se relacionan)
+repository/  acceso a datos (Spring Data JPA)
+service/     reglas de negocio
+controller/  entrada HTTP (recibe y devuelve DTOs)
+dto/         objetos de entrada (Request) y de salida (Response)
+exception/   excepciones propias y su traducción a respuestas HTTP
+util/        utilidades sin estado (textos, enlaces)
+```
+
+El controller habla con el service, nunca con el repository. El service no conoce
+HTTP.
+
+## 2. Cómo funciona la página
 
 ### Página principal
-Tres secciones: Novedades (últimas destacadas, o últimas por fecha si no hay destacadas), 
-Talleres (tarjetas con imagen, título, descripción breve — si hay un único Taller, se 
-navega directo a su página sin listado intermedio), Eventos (sección visual/publicitaria 
-con los últimos eventos).
+Tres secciones: Novedades (destacadas, o las últimas por fecha si no hay ninguna),
+Talleres (tarjetas; si hay un único Taller se navega directo a su página) y Eventos
+(sección visual con los destacados, o los últimos por fecha).
 
 ### Novedades
-Funcionan como noticias de un "diario digital": texto + galería de imágenes propia. 
-Se muestran ordenadas por destacadas primero, luego por fecha. Tienen buscador. Cada una 
-puede estar vinculada opcionalmente a un Taller, Evento o Grupo — el click navega directo 
-a esa entidad si existe el vínculo.
+Noticias de un "diario digital": título y contenido. Se muestran primero las
+destacadas y, si no hay ninguna, las últimas por fecha. Una novedad puede estar
+vinculada a un Evento (el click navega a él) o ser una noticia suelta.
 
-**Cómo se crean:**
-- Automáticamente al crear un Evento nuevo.
-- Manualmente por el admin para cualquier otro anuncio (cambio de sede, vacaciones, nuevo 
-  Taller/Grupo, feedback curado), con vínculo opcional a la entidad correspondiente.
-
-**Ciclo de vida:** nunca se borran por el paso del tiempo, solo manualmente por el admin. 
-Excepción: si el Grupo vinculado se elimina, la Novedad se elimina en cascada con él.
+- Se crean automáticamente al crear un Evento, o a mano para cualquier otro anuncio.
+- La fecha la pone el servidor al crearlas.
 
 ### Talleres
-Página de detalle: descripción extensa, modalidad/sede, profesor a cargo (nombre + 
-referencia opcional + foto), multimedia del lugar, y un desplegable con sus Grupos 
-(día y horario de cada uno).
-
-### Grupos
-Pertenecen a un Taller. Si un Grupo deja de funcionar, se elimina físicamente (no se 
-conserva como historial, a diferencia de Evento).
+Descripción, uno o más profesores y un desplegable con sus Grupos (día, horario y
+modalidad).
 
 ### Eventos
-Nunca se borran (se conservan como historial permanente). Antes de ocurrir: descripción, 
-fecha, lugar, categoría, expositor opcional. Después de ocurrir: se les puede agregar una 
-crónica y fotos, sin perder la publicación original. Página de Eventos: anuncio del 
-próximo, filtro por categoría, opción de ver últimos realizados.
+Título, descripción, fecha, horario (texto libre), lugar, categoría, expositores
+(cero o más), galería multimedia y crónica.
 
----
+- **Próximos:** fecha de hoy o posterior. **Realizados:** fecha anterior a hoy.
+- La **crónica** se carga después del evento, con un endpoint propio, junto con fotos
+  y videos.
 
-## Modelo de entidades (Fase A)
+### Categorías de evento
+Nombre, descripción e imagen. Contenido editorial, no solo una etiqueta.
 
-- **Taller**: nombre, descripción, profesor (relación a Persona)
-- **Grupo**: día, horario, modalidad, relación a Taller (obligatoria)
-- **CategoriaEvento**: nombre, descripción, imagen — clasifica tipos de actividad 
-  (Charla, Noche de Cine, Banquete...)
-- **Evento**: descripción, crónica (opcional, posterior), fecha, lugar, destacado, 
-  relación a CategoriaEvento (obligatoria) y a Persona como expositor (opcional)
-- **Novedad**: contenido, fecha, destacado, relaciones opcionales a Taller, Evento y Grupo
-- **Persona**: nombre, referencia (link a CV/redes) — reutilizada entre profesor de 
-  Taller y expositor de Evento
-- **ImagenGaleria**: url, relación opcional a Evento, Novedad, Taller o Persona 
-  (una imagen pertenece como máximo a una de las cuatro)
+### Personas
+Nombre y una referencia opcional (link a CV o redes). Puede representar a una persona
+o a un grupo. Se reutiliza entre profesores de Taller y expositores de Evento.
 
-## Configuración fija (no en base de datos)
-Email de contacto, WhatsApp/teléfono, y links de redes sociales — viven en variables de 
-entorno, editables solo por el desarrollador vía código.
+### Multimedia
+Imágenes y videos de un Evento (y, a futuro, de Novedades, Talleres y Personas).
 
----
+## 3. Modelo de entidades
 
-## ADRs (Architecture Decision Records)
+| Entidad | Campos principales | Relaciones |
+|---|---|---|
+| `Persona` | nombre, referencia (opcional) | — |
+| `Taller` | nombre, descripción | muchos a muchos con `Persona` (profesores, al menos uno) |
+| `Grupo` | día, horario, modalidad | `Taller` (obligatoria) |
+| `CategoriaEvento` | nombre, descripción, imagenUrl | — |
+| `Evento` | título, descripción, crónica, fecha, horario, lugar, destacado | `CategoriaEvento` (obligatoria); muchos a muchos con `Persona` (expositores, cero o más); `Multimedia` |
+| `Novedad` | título, contenido, fecha, destacado | `Evento` (opcional) |
+| `Multimedia` | url, tipo (IMAGEN o VIDEO) | un único dueño: `Evento`, `Novedad`, `Taller` o `Persona` |
 
-### ADR 001: Información de contacto y redes sociales como configuración
-**Decisión:** no se modelan como tablas de BD. Viven como variables de entorno.
-**Razones:** cambian con poca frecuencia, las administra solo el desarrollador, exponer 
-un endpoint editable agrega superficie de ataque innecesaria.
+## 4. Reglas de borrado
 
-### ADR 002: Taller sin campo de categoría
-**Decisión:** no existe CategoriaTaller. El nombre del Taller ya comunica su temática.
-**Razón (YAGNI):** con un solo Taller, no hay nada que agrupar o filtrar. Se revisita si 
-en el futuro hay múltiples Talleres que lo justifiquen.
+| Entidad | Cómo se borra | Detalle |
+|---|---|---|
+| `Persona` | Manual, condicional | Se rechaza con **409** si es profesor de algún Taller o expositor de algún Evento |
+| `CategoriaEvento` | Manual | Borra en cascada sus Eventos |
+| `Taller` | Manual | Borra en cascada sus Grupos |
+| `Grupo` | Manual, o en cascada | Se borra con su Taller |
+| `Evento` | Manual, o en cascada | Se borra con su Categoría; borra su Novedad y su Multimedia |
+| `Novedad` | Manual, o en cascada | Se borra con su Evento |
+| `Multimedia` | Manual, o en cascada | Se borra con su dueño |
 
-### ADR 003: Ciclo de vida de Novedad
-**Decisión:** las Novedades nunca se eliminan automáticamente por tiempo. Solo se borran 
-manualmente desde el panel admin.
-**Excepción:** Novedad-Grupo usa borrado en cascada, ya que un Grupo eliminado no puede 
-dejar una Novedad "colgando" de una referencia inexistente.
-**Sobre eventos finalizados:** no se borra ni modifica la Novedad asociada. La prioridad 
-de visualización (destacados vigentes, luego últimos) se resuelve en tiempo de consulta 
-en la capa service, no en el modelo.
+Las cascadas se resuelven en la base de datos (`@OnDelete(CASCADE)`), no en el código.
 
-### ADR 004: Reglas de creación de Novedad
-**Decisión:** Evento→Novedad es automático al crear un Evento. Taller/Grupo→Novedad es 
-siempre manual, con vínculo opcional para permitir la navegación por click.
+## 5. Decisiones (ADR)
 
-### ADR 005: Persona como entidad compartida
-**Decisión:** se crea una entidad Persona (nombre, referencia) reutilizada entre 
-Taller.profesor y Evento.expositor, en vez de duplicar campos de texto en cada entidad.
-**Razón:** ambos representan el mismo concepto (una persona referente con nombre y 
-posible link de referencia/foto), a diferencia de CategoriaTaller vs CategoriaEvento, 
-que resultaron ser conceptos distintos y no se unificaron.
+### ADR 001 — Contacto y redes sociales como configuración
+**Decisión:** email, WhatsApp y redes no se modelan en la base: viven como variables de
+entorno, editables solo por el desarrollador.
+**Razones:** cambian poco y exponer un endpoint editable agrega superficie de ataque.
+**Costo conocido:** cada cambio de teléfono o de red requiere intervención del
+desarrollador, lo que choca con el objetivo de no tener que mantenerlo. Se revisa al
+armar el panel.
 
----
+### ADR 002 — Taller sin categoría
+**Decisión:** no existe `CategoriaTaller`.
+**Razón (YAGNI):** con pocos talleres no hay nada que agrupar. Se revisa si crecen.
 
-## Backlog de funcionalidades futuras (no diseñadas todavía)
+### ADR 003 — Persona compartida, con relación muchos a muchos
+**Decisión:** `Persona` se reutiliza entre profesores de Taller y expositores de Evento,
+y tanto un Taller como un Evento pueden tener **varias** personas (tablas intermedias
+`taller_profesores` y `evento_expositores`).
+**Razón:** una charla en panel o un taller dictado por dos personas es un caso normal.
+Una Persona puede ser también un grupo, porque `nombre` es texto libre.
+**Reemplaza** a la versión original, donde cada uno tenía una sola persona.
+**Reglas:** un Taller exige al menos un profesor; un Evento admite cero o más
+expositores. La relación se modela con `Set` para evitar repetidos.
 
-### Catálogo de material de lectura (libros)
-Depende del sistema de alumnos (Fase B) — requiere Usuario para asociar material a 
-grupos/alumnos con acceso diferenciado.
+### ADR 004 — Ciclo de vida: todo se puede borrar, con cascadas
+**Decisión:** Evento, Taller, Categoría y Novedad se eliminan manualmente desde el
+panel. Persona se elimina de forma condicional (ver sección 4).
+**Razón:** se prioriza la limpieza de datos sobre conservar historial completo.
+**Reemplaza** a la decisión original de que Evento, Taller y Persona nunca se borran.
+**Pendiente:** la limpieza automática de una Persona cuando se borra la última entidad
+que la usa **no está implementada**; hoy se borra a mano, y solo si no tiene
+referencias.
 
-### Catálogo de merchandising
-Vidriera de productos sin pago online. El visitante completa un formulario y se lo 
-redirige a WhatsApp. Entidades futuras aproximadas: Producto, SolicitudConsulta.
+### ADR 005 — Novedad solo se relaciona con Evento
+**Decisión:** `Novedad` tiene una relación opcional con `Evento`, y nada más.
+**Reglas:**
+- Al crear un Evento se crea automáticamente su Novedad (con el título y la descripción
+  del evento).
+- Las demás novedades son noticias sueltas, escritas a mano.
+- Una novedad vinculada a un evento **hereda su destacado**; no tiene uno propio.
 
-### Notificaciones push de nuevos Grupos
-El visitante puede optar por recibir una notificación push del navegador cuando se cree 
-un nuevo Grupo. Requiere entidad SuscripcionPush, librería de envío, claves VAPID, 
-Service Worker en frontend, y HTTPS en producción.
+**Reemplaza** a la versión original, donde una novedad podía vincularse a Taller, Evento
+o Grupo.
 
-### Feedback directo persona↔admin
-Depende de que exista Usuario (Fase B) — con persistencia y moderación antes de publicar.
+### ADR 006 — El destacado es manual
+**Decisión:** quien administra marca y desmarca el destacado de un evento a mano. No hay
+destacado automático por cercanía de la fecha.
+**Razón:** es lo más simple de entender y de mantener; no requiere tareas programadas.
+**Consecuencia conocida:** los destacados **no vencen solos**; un evento viejo sigue
+primero hasta que se lo desmarque. Si se quiere evitar, alcanza con que las portadas
+ignoren los eventos cuya fecha ya pasó.
+**Portadas:** si hay destacados, se devuelven esos; si no, los últimos por fecha.
 
----
+### ADR 007 — Horario como texto libre
+**Decisión:** el horario de un Evento (y de un Grupo) es un texto de hasta 50
+caracteres, obligatorio pero sin formato fijo ("19:00 hs", "a la tarde").
+**Razón:** no hace falta una hora exacta, y un campo libre es más fácil para quien carga
+los datos. La fecha sigue siendo una fecha (`LocalDate`).
 
-## Backlog de diseño de frontend (pendiente para etapa de frontend)
+### ADR 008 — Título propio en Evento y Novedad
+**Decisión:** ambos tienen un `titulo` obligatorio (máx. 150), separado de su texto.
+**Razón:** una portada y un "diario digital" necesitan un titular corto; copiar la
+descripción larga como si fuera la noticia no sirve.
 
-- Página principal con 3 secciones descritas arriba.
-- Vista de detalle de Taller con acordeón de Grupos.
-- Vista de Eventos con filtro por categoría.
-- Buscador de Novedades.
-- Navegación condicional: si hay un único Taller, se accede directo sin listado intermedio.
-- Lógica de "últimas N destacadas, o últimas por fecha si no hay destacadas" (capa service).
+### ADR 009 — DTOs con validación en la entrada
+**Decisión:** los controllers no reciben ni devuelven entidades: usan DTOs
+(`records`) de entrada (`...Request`) y de salida (`...Response`).
+**Razones:**
+- La respuesta de un POST y la de un GET son siempre iguales.
+- El cliente envía ids simples (`tallerId`) y no objetos anidados.
+- Se evita que el cliente envíe campos que no debe (como un `id`).
+- Los errores se detectan antes de llegar a la base, con mensajes en castellano.
 
-### ADR 006: Revisión del ciclo de vida de Evento, Taller y Persona
-**Decisión anterior (Fase A):** Evento, Taller y Persona nunca se eliminan (historial permanente).
+**Reglas de entrada:**
+- Las anotaciones de Bean Validation (`@NotBlank`, `@Size`, `@NotEmpty`, `@NotNull`)
+  llevan mensajes en castellano.
+- Los textos opcionales en blanco se guardan como `null` (constructor compacto del
+  `record` más `util/Textos`).
 
-**Nueva decisión:** Evento y Taller pasan a eliminarse manualmente desde el panel admin.
-Persona se elimina de forma condicional: solo cuando, al eliminarse el Evento o Taller
-que la referenciaba, no le queda ninguna otra referencia activa en el sistema (ni como
-expositora de otro Evento, ni como profesora de otro Taller).
+### ADR 010 — Manejo de errores centralizado
+**Decisión:** el service lanza excepciones que dicen **qué** pasó, y un único
+`GlobalExceptionHandler` decide **cómo** se comunica en HTTP.
 
-**Cascadas asociadas:**
-- Grupo → Taller: `@OnDelete(CASCADE)`. Si se borra el Taller, sus Grupos se borran con él.
-- Novedad → Evento: `@OnDelete(CASCADE)`. Si se borra el Evento, la Novedad asociada
-  se borra con él.
-- Novedad → Grupo: ya existente desde Fase A, sin cambios.
+| Excepción | Respuesta |
+|---|---|
+| `RecursoNoEncontradoException` | 404 |
+| `ReglaDeNegocioException` | 409 |
+| Fallo de validación / `EntradaInvalidaException` | 400, con `errores` por campo |
 
-**Razón del cambio:** se prioriza la limpieza de datos sobre la preservación de historial
-completo. Se acepta como trade-off consciente que, a futuro, no va a existir un registro
-histórico de Eventos/Talleres pasados una vez eliminados.
+**Formato:** `ProblemDetail`; los 400 incluyen `errores` (campo → mensaje) para que el
+panel muestre cada mensaje junto a su campo.
+**Razón:** el service no debe conocer HTTP.
 
-**Nota:** este ADR reemplaza el criterio de "historial permanente" para estas tres
-entidades, definido originalmente en el ADR de Fase A. Persona sigue sin eliminarse
-directamente por acción manual — solo como efecto de que se elimine la última entidad
-que la referencia.
+### ADR 011 — Multimedia: imágenes y videos
+**Decisión:** `ImagenGaleria` pasa a llamarse `Multimedia` y tiene un `tipo` (IMAGEN o
+VIDEO). Cada elemento tiene un único dueño. Por ahora solo se gestionan los de Evento
+(`POST /eventos/{id}/multimedia`, `DELETE /multimedia/{id}`).
+**Videos:** se cargan como **enlace** de YouTube, Vimeo o Instagram, no como archivo.
+Alojar video propio implica mucho costo y mantenimiento.
+**Validación:** el enlace se analiza como URL (no como texto), se exige `https` y se
+compara el **host** contra una lista permitida, para rechazar dominios que imitan a
+uno permitido o que lo esconden en la ruta o en el usuario.
+**Instagram:** funciona con cuentas y publicaciones públicas; si el reel se borra o la
+cuenta pasa a privada, deja de verse en el sitio.
+**Imágenes:** por ahora se aceptan por dirección `https`; cuando exista la subida de
+archivos pasarán a apuntar al propio servidor y la regla se endurece.
+**Galería:** se muestra debajo del texto de la crónica, no mezclada en el texto.
+
+### ADR 012 — La crónica tiene endpoint propio
+**Decisión:** la crónica se carga con `PUT /eventos/{id}/cronica`. Editar un evento
+(`PUT /eventos/{id}`) **no la toca**.
+**Razón:** se escribe después del evento y no debe pisarse por accidente al corregir
+sus datos.
+
+### ADR 013 — Transacciones en operaciones de varios pasos
+**Decisión:** `EventoService.crear` es `@Transactional`: guardar el evento y su novedad
+automática se confirma junto o no se confirma.
+**Razón:** sin esto, un fallo en el segundo paso dejaba un evento sin novedad.
+
+## 6. Notas técnicas
+
+- **Esquema de base:** en desarrollo se usa `ddl-auto=update`. Para producción hay que
+  pasar a migraciones controladas.
+- **Credenciales:** la contraseña de la base va en la variable de entorno
+  `DB_PASSWORD`, nunca en el código.
+- **`open-in-view`:** está activo (valor por defecto de Spring), y las relaciones
+  perezosas se cargan al armar las respuestas. Se revisa si hay que optimizar.
+- **Pruebas de API:** `docs/pruebas-api.http` (extensión REST Client) recorre todos los
+  endpoints, de arriba hacia abajo, con los ids encadenados.
+
+## 7. Pendiente
+
+**Antes de entregar (bloqueantes):**
+1. **Login del panel de administración** (un usuario administrador). Hoy cualquiera que
+   conozca la dirección puede crear o borrar contenido.
+2. **Subida de imágenes** desde la computadora, para que quien administra no pegue URLs.
+3. **Panel de administración** (`admin/`) y **sitio público** (`frontend/`).
+4. **Despliegue y copias de seguridad.**
+
+**Mejoras identificadas:**
+- Buscador de novedades.
+- Que los destacados dejen de serlo al pasar la fecha del evento.
+- Limpieza automática de personas sin referencias.
+- Editar datos de contacto desde el panel (ver ADR 001).
+- Orden alfabético de personas para los desplegables.
+
+**Backlog (Fase B, no diseñado):** sistema de alumnos (usuarios, roles, inscripciones,
+material de lectura, feedback), catálogo de merchandising, notificaciones push de nuevos
+Grupos.
