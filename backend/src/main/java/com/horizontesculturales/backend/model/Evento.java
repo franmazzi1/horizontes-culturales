@@ -17,6 +17,11 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 
 @Entity
 @Table(name = "eventos")
@@ -59,6 +64,10 @@ public class Evento {
         inverseJoinColumns = @JoinColumn(name = "persona_id")
     )
     private Set<Persona> expositores = new HashSet<>();
+
+        @OneToMany(mappedBy = "evento")
+    @OrderBy("id ASC")
+    private List<Multimedia> multimedia = new ArrayList<>();
 
     public Evento() {
     }
@@ -133,5 +142,8 @@ public class Evento {
     }
     public void setHorario(String horario) {
         this.horario = horario;
+    }
+    public List<Multimedia> getMultimedia() {
+        return multimedia;
     }
 }

@@ -31,4 +31,11 @@ public class GlobalExceptionHandler {
         problema.setProperty("errores", errores);
         return problema;
     }
+    @ExceptionHandler(EntradaInvalidaException.class)
+    public ProblemDetail manejarEntradaInvalida(EntradaInvalidaException ex) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST, "Hay datos incorrectos en el formulario");
+        problema.setProperty("errores", Map.of(ex.getCampo(), ex.getMessage()));
+        return problema;
+    }
 }

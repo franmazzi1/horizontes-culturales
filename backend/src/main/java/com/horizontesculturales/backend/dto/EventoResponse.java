@@ -18,7 +18,8 @@ public record EventoResponse(
     boolean destacado,
     Long categoriaId,
     String categoriaNombre,
-    List<PersonaResponse> expositores
+    List<PersonaResponse> expositores,
+    List<MultimediaResponse> multimedia
     
 ) {
 
@@ -39,7 +40,10 @@ public record EventoResponse(
             evento.isDestacado(),
             evento.getCategoriaEvento().getId(),
             evento.getCategoriaEvento().getNombre(),
-            expositores
+            expositores,
+            evento.getMultimedia().stream()
+                .map(MultimediaResponse::desde)
+                .toList()
         );
     }
 }

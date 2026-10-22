@@ -5,6 +5,8 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,15 +15,19 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "imagenes_galeria")
-public class ImagenGaleria {
+@Table(name = "multimedia")
+public class Multimedia {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 500)
     private String url;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private TipoMultimedia tipo;
 
     @ManyToOne
     @JoinColumn(name = "evento_id")
@@ -43,11 +49,12 @@ public class ImagenGaleria {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Persona persona;
 
-    public ImagenGaleria() {
+    public Multimedia() {
     }
 
-    public ImagenGaleria(String url) {
+    public Multimedia(String url, TipoMultimedia tipo) {
         this.url = url;
+        this.tipo = tipo;
     }
 
     public Long getId() {
@@ -61,6 +68,12 @@ public class ImagenGaleria {
     }
     public void setUrl(String url) {
         this.url = url;
+    }
+    public TipoMultimedia getTipo() {
+        return tipo;
+    }
+    public void setTipo(TipoMultimedia tipo) {
+        this.tipo = tipo;
     }
     public Evento getEvento() {
         return evento;
