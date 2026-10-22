@@ -1,0 +1,523 @@
+# =====================================================================
+# Pruebas de la API de Horizontes Culturales (extension REST Client)
+#
+# COMO USAR
+#  1. Levanta la app (./mvnw spring-boot:run) con la base recien creada.
+#  2. Cambia @fechaHoy por la fecha de hoy (formato AAAA-MM-DD).
+#  3. Anda de arriba hacia abajo y toca "Send Request" en cada pedido.
+#     No te saltees ninguno: los siguientes usan los ids de los anteriores.
+#  4. El titulo de cada pedido dice el estado (status) que tenes que ver.
+#     Si algo no coincide, frena ahi y mira la respuesta.
+#
+# Los ids se completan solos: "# @name ana" guarda la respuesta de ese
+# pedido y {{ana.response.body.$.id}} usa el id que devolvio.
+# Al final, la limpieza deja la base como estaba.
+# =====================================================================
+
+@baseUrl = http://localhost:8080
+@fechaFutura = 2026-12-20
+@fechaHoy = 2026-10-21
+@fechaPasada = 2026-09-01
+
+
+# =====================================================================
+# 1. PERSONAS
+# =====================================================================
+
+### [201] Crear a Ana (la referencia vacia tiene que volver null)
+# @name ana
+POST {{baseUrl}}/personas
+Content-Type: application/json
+
+{ "nombre": "Ana Gómez", "referencia": "" }
+
+### [201] Crear a Juan (referencia de solo espacios tiene que volver null)
+# @name juan
+POST {{baseUrl}}/personas
+Content-Type: application/json
+
+{ "nombre": "Juan Pérez", "referencia": "   " }
+
+### [400] Persona sin nombre (errores.nombre)
+POST {{baseUrl}}/personas
+Content-Type: application/json
+
+{ "nombre": "" }
+
+### [404] Persona inexistente
+GET {{baseUrl}}/personas/999999
+
+
+# =====================================================================
+# 2. CATEGORIAS DE EVENTO
+# =====================================================================
+
+### [201] Crear categoria (descripcion e imagenUrl vuelven null)
+# @name cat
+POST {{baseUrl}}/categorias-evento
+Content-Type: application/json
+
+{ "nombre": "Charla", "descripcion": "", "imagenUrl": "" }
+
+### [400] Categoria sin nombre
+POST {{baseUrl}}/categorias-evento
+Content-Type: application/json
+
+{ "nombre": "" }
+
+
+# =====================================================================
+# 3. TALLERES (varios profesores)
+# =====================================================================
+
+### [201] Crear taller con dos profesores (la respuesta trae 2)
+# @name taller
+POST {{baseUrl}}/talleres
+Content-Type: application/json
+
+{
+  "nombre": "Taller de Filosofía",
+  "descripcion": "Introducción a la filosofía",
+  "profesorIds": [{{ana.response.body.$.id}}, {{juan.response.body.$.id}}]
+}
+
+### [200] Editar el taller dejando un solo profesor (la respuesta trae 1)
+PUT {{baseUrl}}/talleres/{{taller.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nombre": "Taller de Filosofía",
+  "descripcion": "Introducción a la filosofía",
+  "profesorIds": [{{ana.response.body.$.id}}]
+}
+
+### [200] Listar talleres (aparece el taller con un solo profesor)
+GET {{baseUrl}}/talleres
+
+### [400] Taller sin profesores (errores.profesorIds)
+POST {{baseUrl}}/talleres
+Content-Type: application/json
+
+{ "nombre": "Taller X", "descripcion": "x", "profesorIds": [] }
+
+### [404] Taller con un profesor que no existe
+POST {{baseUrl}}/talleres
+Content-Type: application/json
+
+{ "nombre": "Taller X", "descripcion": "x", "profesorIds": [999999] }
+
+
+# =====================================================================
+# 4. GRUPOS
+# =====================================================================
+
+### [201] Crear grupo (la respuesta trae tallerNombre, sin nulls)
+# @name grupo
+POST {{baseUrl}}/grupos
+Content-Type: application/json
+
+{
+  "dia": "Martes",
+  "horario": "19:00",
+  "modalidad": "Presencial",
+  "tallerId": {{taller.response.body.$.id}}
+}
+
+### [200] Listar los grupos del taller (aparece el grupo)
+GET {{baseUrl}}/grupos?tallerId={{taller.response.body.$.id}}
+
+### [404] Grupo con un taller que no existe
+POST {{baseUrl}}/grupos
+Content-Type: application/json
+
+{ "dia": "Martes", "horario": "19:00", "modalidad": "Presencial", "tallerId": 999999 }
+
+### [400] Grupo con datos faltantes
+POST {{baseUrl}}/grupos
+Content-Type: application/json
+
+{ "dia": "" }
+
+
+# =====================================================================
+# 5. BORRADO CONDICIONAL DE PERSONAS
+# =====================================================================
+
+### [409] No se puede borrar a Ana: es profesora de un taller
+DELETE {{baseUrl}}/personas/{{ana.response.body.$.id}}
+
+### [204] Juan ya no esta en ningun taller: se borra
+DELETE {{baseUrl}}/personas/{{juan.response.body.$.id}}
+
+
+# =====================================================================
+# 6. EVENTOS
+# =====================================================================
+
+### [201] Evento futuro y destacado, con Ana de expositora
+# Tiene que venir con acento bien escrito (Platón), horario, 1 expositor
+# y "multimedia": []
+# @name evento
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Charla sobre Platón",
+  "descripcion": "Una charla abierta sobre la teoría de las ideas.",
+  "fecha": "{{fechaFutura}}",
+  "horario": "19:00 hs",
+  "lugar": "Sede central",
+  "destacado": true,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": [{{ana.response.body.$.id}}]
+}
+
+### [400] Evento sin horario (errores.horario)
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Sin horario",
+  "descripcion": "x",
+  "fecha": "{{fechaFutura}}",
+  "lugar": "Sede",
+  "destacado": false,
+  "categoriaId": {{cat.response.body.$.id}}
+}
+
+### [404] Evento con una categoria que no existe
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Categoría falsa",
+  "descripcion": "x",
+  "fecha": "{{fechaFutura}}",
+  "horario": "19:00 hs",
+  "lugar": "Sede",
+  "destacado": false,
+  "categoriaId": 999999,
+  "expositorIds": []
+}
+
+### [200] Portada de novedades
+# Tiene que estar la novedad "Charla sobre Platón" con "destacado": true
+# y "eventoId" igual al id del evento (la creo sola el sistema)
+GET {{baseUrl}}/novedades/portada
+
+### [200] Quitar el destacado al evento
+PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "titulo": "Charla sobre Platón",
+  "descripcion": "Una charla abierta sobre la teoría de las ideas.",
+  "fecha": "{{fechaFutura}}",
+  "horario": "19:00 hs",
+  "lugar": "Sede central",
+  "destacado": false,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": [{{ana.response.body.$.id}}]
+}
+
+### [200] Portada de novedades otra vez
+# La novedad del evento ahora tiene que venir con "destacado": false
+GET {{baseUrl}}/novedades/portada
+
+### [200] Volver a destacar el evento
+PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "titulo": "Charla sobre Platón",
+  "descripcion": "Una charla abierta sobre la teoría de las ideas.",
+  "fecha": "{{fechaFutura}}",
+  "horario": "19:00 hs",
+  "lugar": "Sede central",
+  "destacado": true,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": [{{ana.response.body.$.id}}]
+}
+
+### [200] Portada de eventos
+# El evento destacado tiene que aparecer
+GET {{baseUrl}}/eventos/portada
+
+### [201] Evento de hoy
+# @name eventoHoy
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Evento de hoy",
+  "descripcion": "Descripción de prueba.",
+  "fecha": "{{fechaHoy}}",
+  "horario": "20:00 hs",
+  "lugar": "Sede central",
+  "destacado": false,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": []
+}
+
+### [201] Evento pasado
+# @name eventoPasado
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Evento pasado",
+  "descripcion": "Descripción de prueba.",
+  "fecha": "{{fechaPasada}}",
+  "horario": "18:00 hs",
+  "lugar": "Sede central",
+  "destacado": false,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": []
+}
+
+### [200] Proximos
+# Tienen que estar: "Charla sobre Platón" y "Evento de hoy". NO "Evento pasado".
+GET {{baseUrl}}/eventos/proximos
+
+### [200] Realizados
+# Tiene que estar solo "Evento pasado". NO "Evento de hoy".
+GET {{baseUrl}}/eventos/realizados
+
+
+# =====================================================================
+# 7. CRONICA DEL EVENTO
+# =====================================================================
+
+### [200] Cargar la cronica
+PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}/cronica
+Content-Type: application/json
+
+{ "cronica": "Fue una charla muy concurrida." }
+
+### [400] Cronica vacia
+PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}/cronica
+Content-Type: application/json
+
+{ "cronica": "" }
+
+### [404] Cronica de un evento inexistente
+PUT {{baseUrl}}/eventos/999999/cronica
+Content-Type: application/json
+
+{ "cronica": "Texto" }
+
+### [200] Editar el evento (cambia el lugar)
+PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "titulo": "Charla sobre Platón",
+  "descripcion": "Una charla abierta sobre la teoría de las ideas.",
+  "fecha": "{{fechaFutura}}",
+  "horario": "19:00 hs",
+  "lugar": "Otra sede",
+  "destacado": true,
+  "categoriaId": {{cat.response.body.$.id}},
+  "expositorIds": [{{ana.response.body.$.id}}]
+}
+
+### [200] Ver el evento
+# El lugar es "Otra sede" y la cronica NO tiene que haber desaparecido
+GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+
+
+# =====================================================================
+# 8. NOVEDADES SUELTAS
+# =====================================================================
+
+### [201] Novedad suelta (eventoId tiene que ser null)
+# @name novedadSuelta1
+POST {{baseUrl}}/novedades
+Content-Type: application/json
+
+{ "titulo": "Cambio de sede", "contenido": "Desde marzo nos mudamos.", "destacado": false }
+
+### [201] Novedad suelta destacada
+# @name novedadSuelta2
+POST {{baseUrl}}/novedades
+Content-Type: application/json
+
+{ "titulo": "Nueva noticia", "contenido": "Texto de la noticia.", "destacado": true }
+
+### [400] Novedad sin titulo ni contenido (errores.titulo y errores.contenido)
+POST {{baseUrl}}/novedades
+Content-Type: application/json
+
+{ "titulo": "", "contenido": "" }
+
+### [200] Portada de novedades
+# Tiene que estar "Nueva noticia" (destacada)
+GET {{baseUrl}}/novedades/portada
+
+
+# =====================================================================
+# 9. MULTIMEDIA DE LA CRONICA
+# =====================================================================
+
+### [201] Reel de Instagram
+# @name m1
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://www.instagram.com/reel/ABC123/?igsh=xyz", "tipo": "VIDEO" }
+
+### [201] Video de YouTube
+# @name m2
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://youtu.be/abc123", "tipo": "VIDEO" }
+
+### [201] Imagen
+# @name m3
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://ejemplo.com/foto.jpg", "tipo": "IMAGEN" }
+
+### [200] Ver el evento
+# "multimedia" tiene que traer las 3, en el orden en que se cargaron
+GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+
+### [400] Video de un sitio que no esta permitido
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://sitio-raro.com/video", "tipo": "VIDEO" }
+
+### [400] Video con http (sin la s)
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "http://youtube.com/watch?v=1", "tipo": "VIDEO" }
+
+### [400] Dominio que imita a YouTube
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://youtube.com.sitio-malo.com/x", "tipo": "VIDEO" }
+
+### [400] YouTube escondido en la ruta
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://sitio-malo.com/youtube.com", "tipo": "VIDEO" }
+
+### [400] YouTube escondido como usuario
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://youtube.com@sitio-malo.com/x", "tipo": "VIDEO" }
+
+### [400] Imagen con http
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "http://ejemplo.com/foto.jpg", "tipo": "IMAGEN" }
+
+### [400] Direccion vacia
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "", "tipo": "VIDEO" }
+
+### [400] Sin tipo
+POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+Content-Type: application/json
+
+{ "url": "https://youtu.be/abc" }
+
+### [404] Multimedia en un evento inexistente
+POST {{baseUrl}}/eventos/999999/multimedia
+Content-Type: application/json
+
+{ "url": "https://youtu.be/abc", "tipo": "VIDEO" }
+
+### [204] Quitar la imagen
+DELETE {{baseUrl}}/multimedia/{{m3.response.body.$.id}}
+
+### [200] Ver el evento
+# "multimedia" tiene que traer solo 2
+GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+
+### [404] Quitar una multimedia inexistente
+DELETE {{baseUrl}}/multimedia/999999
+
+
+# =====================================================================
+# 10. BORRADOS EN CASCADA
+# =====================================================================
+
+### [204] Borrar el evento (todavia tiene 2 multimedia y una novedad)
+DELETE {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+
+### [404] El evento ya no existe
+GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+
+### [200] Portada de novedades
+# La novedad "Charla sobre Platón" NO tiene que estar (se borro con el evento)
+GET {{baseUrl}}/novedades/portada
+
+### [204] Borrar el taller (tiene un grupo)
+DELETE {{baseUrl}}/talleres/{{taller.response.body.$.id}}
+
+### [404] El grupo se borro con el taller
+GET {{baseUrl}}/grupos/{{grupo.response.body.$.id}}
+
+### [201] Segunda categoria (para probar la cascada de categoria)
+# @name cat2
+POST {{baseUrl}}/categorias-evento
+Content-Type: application/json
+
+{ "nombre": "Ciclo de cine" }
+
+### [201] Evento dentro de la segunda categoria
+# @name evento2
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "titulo": "Función de cine",
+  "descripcion": "Descripción de prueba.",
+  "fecha": "{{fechaFutura}}",
+  "horario": "21:00 hs",
+  "lugar": "Sede central",
+  "destacado": false,
+  "categoriaId": {{cat2.response.body.$.id}},
+  "expositorIds": []
+}
+
+### [204] Borrar la segunda categoria (tiene un evento)
+DELETE {{baseUrl}}/categorias-evento/{{cat2.response.body.$.id}}
+
+### [404] El evento se borro con su categoria
+GET {{baseUrl}}/eventos/{{evento2.response.body.$.id}}
+
+### [204] Ana ya no tiene referencias (ni taller ni evento): se borra
+DELETE {{baseUrl}}/personas/{{ana.response.body.$.id}}
+
+
+# =====================================================================
+# 11. LIMPIEZA
+# =====================================================================
+
+### [204] Borrar la categoria de prueba (se llevan sus eventos de hoy y pasado)
+DELETE {{baseUrl}}/categorias-evento/{{cat.response.body.$.id}}
+
+### [204] Borrar novedad suelta 1
+DELETE {{baseUrl}}/novedades/{{novedadSuelta1.response.body.$.id}}
+
+### [204] Borrar novedad suelta 2
+DELETE {{baseUrl}}/novedades/{{novedadSuelta2.response.body.$.id}}
+
+### [200] Verificacion final
+# Las portadas tienen que haber quedado vacias: []
+GET {{baseUrl}}/novedades/portada
+
+### [200] Verificacion final
+GET {{baseUrl}}/eventos/portada
