@@ -14,6 +14,8 @@ import com.horizontesculturales.backend.model.Evento;
 import com.horizontesculturales.backend.model.Persona;
 import com.horizontesculturales.backend.repository.EventoRepository;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 public class EventoService {
 
@@ -56,6 +58,7 @@ public class EventoService {
         return eventoRepository.findByFechaBefore(LocalDate.now());
     }
 
+    @Transactional
     public Evento crear(EventoRequest request) {
         CategoriaEvento categoria = categoriaEventoService.obtenerPorId(request.categoriaId());
         Set<Persona> expositores = obtenerExpositores(request.expositorIds());
@@ -66,6 +69,9 @@ public class EventoService {
         Evento eventoGuardado = eventoRepository.save(evento);
 
         novedadService.crearParaEvento(eventoGuardado);
+        if ("FALLAR".equals(request.titulo())) {
+            throw new RuntimeException("prueba de rollback");
+        }
 
         return eventoGuardado;
     }
