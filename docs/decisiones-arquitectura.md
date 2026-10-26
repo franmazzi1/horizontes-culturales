@@ -1,4 +1,4 @@
-# Decisiones de Arquitectura — Horizontes Culturales
+## Decisiones de Arquitectura — Horizontes Culturales
 
 > Documento vivo. Describe el estado **actual** del proyecto y el porqué de cada
 > decisión. Las decisiones que reemplazan a otras anteriores lo indican.

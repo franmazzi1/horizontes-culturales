@@ -27,14 +27,26 @@
 ### [201] Crear a Ana (la referencia vacia tiene que volver null)
 # @name ana
 POST {{baseUrl}}/personas
+Authorization: Basic admin 1234
 Content-Type: application/json
 
 { "nombre": "Ana Gómez", "referencia": "" }
+
+### [201] Crear a Juan (referencia de solo espacios tiene que volar)
+# @name juan
+POST {{baseUrl}}/personas
+Content-Type: application/json
+
+{ 
+  "nombre": "Juan Pérez", 
+  "referencia": "   " 
+}
 
 ### [201] Crear a Juan (referencia de solo espacios tiene que volver null)
 # @name juan
 POST {{baseUrl}}/personas
 Content-Type: application/json
+
 
 { "nombre": "Juan Pérez", "referencia": "   " }
 
