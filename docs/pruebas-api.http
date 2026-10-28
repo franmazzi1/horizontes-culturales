@@ -1,25 +1,46 @@
-# =====================================================================
-# Pruebas de la API de Horizontes Culturales (extension REST Client)
-#
-# COMO USAR
-#  1. Levanta la app (./mvnw spring-boot:run) con la base recien creada.
-#  2. Cambia @fechaHoy por la fecha de hoy (formato AAAA-MM-DD).
-#  3. Anda de arriba hacia abajo y toca "Send Request" en cada pedido.
-#     No te saltees ninguno: los siguientes usan los ids de los anteriores.
-#  4. El titulo de cada pedido dice el estado (status) que tenes que ver.
-#     Si algo no coincide, frena ahi y mira la respuesta.
-#
-# Los ids se completan solos: "# @name ana" guarda la respuesta de ese
-# pedido y {{ana.response.body.$.id}} usa el id que devolvio.
-# Al final, la limpieza deja la base como estaba.
-# =====================================================================
 
 @baseUrl = http://localhost:8080
 @fechaFutura = 2026-12-20
 @fechaHoy = 2026-10-21
 @fechaPasada = 2026-09-01
 
+# =====================================================================
+# 0. LOGIN 
+# =====================================================================
 
+### [401] Sin sesion no se puede escribir
+POST {{baseUrl}}/personas
+Content-Type: application/json
+
+{ "nombre": "Intruso" }
+
+### [401] Sin sesion tampoco se ve el listado de personas
+GET {{baseUrl}}/personas
+
+### [200] Lo publico se ve sin sesion
+GET {{baseUrl}}/eventos/proximos
+
+### [401] Login con contrasena incorrecta (detail: "Email o contraseña incorrectos")
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=incorrecta
+
+### [204] Login correcto (la respuesta trae Set-Cookie: JSESSIONID)
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
+
+### [200] Quien soy (email y rol ADMIN)
+GET {{baseUrl}}/auth/me
+
+
+### [204] Cerrar sesion
+POST {{baseUrl}}/auth/logout
+
+### [401] Ya sin sesion
+GET {{baseUrl}}/auth/me
 # =====================================================================
 # 1. PERSONAS
 # =====================================================================
@@ -27,7 +48,6 @@
 ### [201] Crear a Ana (la referencia vacia tiene que volver null)
 # @name ana
 POST {{baseUrl}}/personas
-Authorization: Basic admin 1234
 Content-Type: application/json
 
 { "nombre": "Ana Gómez", "referencia": "" }
@@ -58,6 +78,10 @@ Content-Type: application/json
 
 ### [404] Persona inexistente
 GET {{baseUrl}}/personas/999999
+
+### [200] Login con el administrador
+GET {{baseUrl}}/personas
+Authorization: Basic {{$processEnv ADMIN_EMAIL}}:{{$processEnv ADMIN_PASSWORD}}
 
 
 # =====================================================================
