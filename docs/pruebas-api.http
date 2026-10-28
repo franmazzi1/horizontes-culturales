@@ -35,6 +35,66 @@ email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
 ### [200] Quien soy (email y rol ADMIN)
 GET {{baseUrl}}/auth/me
 
+### [400] Contrasena actual incorrecta (errores.passwordActual)
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "incorrecta", "passwordNueva": "ClaveNueva2026" }
+
+### [400] Contrasena nueva demasiado corta (errores.passwordNueva)
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "corta" }
+
+### [400] Contrasena nueva igual a la actual (errores.passwordNueva)
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
+
+### [204] Cambiar la contrasena
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "ClaveNueva2026" }
+
+### [204] Cerrar sesion
+POST {{baseUrl}}/auth/logout
+
+### [401] Sin sesion no se puede cambiar la contrasena
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "ClaveNueva2026", "passwordNueva": "OtraClave2026" }
+
+### [401] Login con la contrasena VIEJA
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
+
+### [204] Login con la contrasena NUEVA
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=ClaveNueva2026
+
+### [204] VOLVER a la contrasena original (no te lo saltees)
+PUT {{baseUrl}}/auth/password
+Content-Type: application/json
+
+{ "passwordActual": "ClaveNueva2026", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
+
+### [204] Cerrar sesion
+POST {{baseUrl}}/auth/logout
+
+### [204] Login con la contrasena original (queda todo como antes)
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
+
 
 ### [204] Cerrar sesion
 POST {{baseUrl}}/auth/logout
