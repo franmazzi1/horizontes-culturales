@@ -1,14 +1,40 @@
+# =====================================================================
+# Pruebas de la API de Horizontes Culturales (extension REST Client)
+#
+# COMO USAR
+#  1. Levanta la app (./mvnw spring-boot:run) con la base recien creada
+#     y las variables de entorno ADMIN_EMAIL y ADMIN_PASSWORD definidas.
+#  2. Cambia @fechaHoy por la fecha de hoy (formato AAAA-MM-DD).
+#  3. Anda de arriba hacia abajo y toca "Send Request" en cada pedido.
+#     No te saltees ninguno: los siguientes usan los ids de los anteriores.
+#  4. El titulo de cada pedido dice el estado (status) que tenes que ver.
+#     Si algo no coincide, frena ahi y mira la respuesta.
+#
+# SESION Y CSRF
+#  - Primero se hace login (seccion 0). REST Client guarda la cookie de
+#    sesion y la manda sola.
+#  - Todo pedido que escribe (POST, PUT, DELETE) lleva el encabezado
+#    X-CSRF-TOKEN con el token que devuelve GET /auth/csrf.
+#  - El token pertenece a UNA sesion: despues de cada login nuevo hay que
+#    pedir el token de nuevo (por eso existen "csrf" y "csrf2").
+#  - Si pasan mas de 30 minutos sin actividad, la sesion vence: volve a
+#    hacer login y pedir el token (seccion 0).
+#
+# Los ids se completan solos: "# @name ana" guarda la respuesta de ese
+# pedido y {{ana.response.body.$.id}} usa el id que devolvio.
+# =====================================================================
 
 @baseUrl = http://localhost:8080
 @fechaFutura = 2026-12-20
 @fechaHoy = 2026-10-21
 @fechaPasada = 2026-09-01
 
+
 # =====================================================================
-# 0. LOGIN 
+# 0. SESION: login y token CSRF (mandalos primero)
 # =====================================================================
 
-### [401] Sin sesion no se puede escribir
+### [403] Sin sesion no se puede escribir (lo frena la proteccion CSRF)
 POST {{baseUrl}}/personas
 Content-Type: application/json
 
@@ -32,75 +58,14 @@ Content-Type: application/x-www-form-urlencoded
 
 email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
 
+### [200] Token CSRF de esta sesion (mandalo despues de cada login)
+# @name csrf
+GET {{baseUrl}}/auth/csrf
+
 ### [200] Quien soy (email y rol ADMIN)
 GET {{baseUrl}}/auth/me
 
-### [400] Contrasena actual incorrecta (errores.passwordActual)
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
 
-{ "passwordActual": "incorrecta", "passwordNueva": "ClaveNueva2026" }
-
-### [400] Contrasena nueva demasiado corta (errores.passwordNueva)
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
-
-{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "corta" }
-
-### [400] Contrasena nueva igual a la actual (errores.passwordNueva)
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
-
-{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
-
-### [204] Cambiar la contrasena
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
-
-{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "ClaveNueva2026" }
-
-### [204] Cerrar sesion
-POST {{baseUrl}}/auth/logout
-
-### [401] Sin sesion no se puede cambiar la contrasena
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
-
-{ "passwordActual": "ClaveNueva2026", "passwordNueva": "OtraClave2026" }
-
-### [401] Login con la contrasena VIEJA
-POST {{baseUrl}}/auth/login
-Content-Type: application/x-www-form-urlencoded
-
-email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
-
-### [204] Login con la contrasena NUEVA
-POST {{baseUrl}}/auth/login
-Content-Type: application/x-www-form-urlencoded
-
-email={{$processEnv ADMIN_EMAIL}}&password=ClaveNueva2026
-
-### [204] VOLVER a la contrasena original (no te lo saltees)
-PUT {{baseUrl}}/auth/password
-Content-Type: application/json
-
-{ "passwordActual": "ClaveNueva2026", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
-
-### [204] Cerrar sesion
-POST {{baseUrl}}/auth/logout
-
-### [204] Login con la contrasena original (queda todo como antes)
-POST {{baseUrl}}/auth/login
-Content-Type: application/x-www-form-urlencoded
-
-email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
-
-
-### [204] Cerrar sesion
-POST {{baseUrl}}/auth/logout
-
-### [401] Ya sin sesion
-GET {{baseUrl}}/auth/me
 # =====================================================================
 # 1. PERSONAS
 # =====================================================================
@@ -108,40 +73,28 @@ GET {{baseUrl}}/auth/me
 ### [201] Crear a Ana (la referencia vacia tiene que volver null)
 # @name ana
 POST {{baseUrl}}/personas
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "Ana Gómez", "referencia": "" }
 
-### [201] Crear a Juan (referencia de solo espacios tiene que volar)
-# @name juan
-POST {{baseUrl}}/personas
-Content-Type: application/json
-
-{ 
-  "nombre": "Juan Pérez", 
-  "referencia": "   " 
-}
-
 ### [201] Crear a Juan (referencia de solo espacios tiene que volver null)
 # @name juan
 POST {{baseUrl}}/personas
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
-
 
 { "nombre": "Juan Pérez", "referencia": "   " }
 
 ### [400] Persona sin nombre (errores.nombre)
 POST {{baseUrl}}/personas
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "" }
 
 ### [404] Persona inexistente
 GET {{baseUrl}}/personas/999999
-
-### [200] Login con el administrador
-GET {{baseUrl}}/personas
-Authorization: Basic {{$processEnv ADMIN_EMAIL}}:{{$processEnv ADMIN_PASSWORD}}
 
 
 # =====================================================================
@@ -151,12 +104,14 @@ Authorization: Basic {{$processEnv ADMIN_EMAIL}}:{{$processEnv ADMIN_PASSWORD}}
 ### [201] Crear categoria (descripcion e imagenUrl vuelven null)
 # @name cat
 POST {{baseUrl}}/categorias-evento
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "Charla", "descripcion": "", "imagenUrl": "" }
 
 ### [400] Categoria sin nombre
 POST {{baseUrl}}/categorias-evento
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "" }
@@ -169,6 +124,7 @@ Content-Type: application/json
 ### [201] Crear taller con dos profesores (la respuesta trae 2)
 # @name taller
 POST {{baseUrl}}/talleres
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -179,6 +135,7 @@ Content-Type: application/json
 
 ### [200] Editar el taller dejando un solo profesor (la respuesta trae 1)
 PUT {{baseUrl}}/talleres/{{taller.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -192,12 +149,14 @@ GET {{baseUrl}}/talleres
 
 ### [400] Taller sin profesores (errores.profesorIds)
 POST {{baseUrl}}/talleres
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "Taller X", "descripcion": "x", "profesorIds": [] }
 
 ### [404] Taller con un profesor que no existe
 POST {{baseUrl}}/talleres
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "Taller X", "descripcion": "x", "profesorIds": [999999] }
@@ -210,6 +169,7 @@ Content-Type: application/json
 ### [201] Crear grupo (la respuesta trae tallerNombre, sin nulls)
 # @name grupo
 POST {{baseUrl}}/grupos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -224,12 +184,14 @@ GET {{baseUrl}}/grupos?tallerId={{taller.response.body.$.id}}
 
 ### [404] Grupo con un taller que no existe
 POST {{baseUrl}}/grupos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "dia": "Martes", "horario": "19:00", "modalidad": "Presencial", "tallerId": 999999 }
 
 ### [400] Grupo con datos faltantes
 POST {{baseUrl}}/grupos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "dia": "" }
@@ -241,9 +203,11 @@ Content-Type: application/json
 
 ### [409] No se puede borrar a Ana: es profesora de un taller
 DELETE {{baseUrl}}/personas/{{ana.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [204] Juan ya no esta en ningun taller: se borra
 DELETE {{baseUrl}}/personas/{{juan.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 
 # =====================================================================
@@ -255,6 +219,7 @@ DELETE {{baseUrl}}/personas/{{juan.response.body.$.id}}
 # y "multimedia": []
 # @name evento
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -270,6 +235,7 @@ Content-Type: application/json
 
 ### [400] Evento sin horario (errores.horario)
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -283,6 +249,7 @@ Content-Type: application/json
 
 ### [404] Evento con una categoria que no existe
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -303,6 +270,7 @@ GET {{baseUrl}}/novedades/portada
 
 ### [200] Quitar el destacado al evento
 PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -322,6 +290,7 @@ GET {{baseUrl}}/novedades/portada
 
 ### [200] Volver a destacar el evento
 PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -342,12 +311,13 @@ GET {{baseUrl}}/eventos/portada
 ### [201] Evento de hoy
 # @name eventoHoy
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
   "titulo": "Evento de hoy",
   "descripcion": "Descripción de prueba.",
-  "fecha": "{{fechaHoy}}",
+  "fecha": "2026-11-10",
   "horario": "20:00 hs",
   "lugar": "Sede central",
   "destacado": false,
@@ -358,6 +328,7 @@ Content-Type: application/json
 ### [201] Evento pasado
 # @name eventoPasado
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -386,24 +357,28 @@ GET {{baseUrl}}/eventos/realizados
 
 ### [200] Cargar la cronica
 PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}/cronica
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "cronica": "Fue una charla muy concurrida." }
 
 ### [400] Cronica vacia
 PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}/cronica
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "cronica": "" }
 
 ### [404] Cronica de un evento inexistente
 PUT {{baseUrl}}/eventos/999999/cronica
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "cronica": "Texto" }
 
 ### [200] Editar el evento (cambia el lugar)
 PUT {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -429,6 +404,7 @@ GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
 ### [201] Novedad suelta (eventoId tiene que ser null)
 # @name novedadSuelta1
 POST {{baseUrl}}/novedades
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "titulo": "Cambio de sede", "contenido": "Desde marzo nos mudamos.", "destacado": false }
@@ -436,12 +412,14 @@ Content-Type: application/json
 ### [201] Novedad suelta destacada
 # @name novedadSuelta2
 POST {{baseUrl}}/novedades
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "titulo": "Nueva noticia", "contenido": "Texto de la noticia.", "destacado": true }
 
 ### [400] Novedad sin titulo ni contenido (errores.titulo y errores.contenido)
 POST {{baseUrl}}/novedades
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "titulo": "", "contenido": "" }
@@ -458,6 +436,7 @@ GET {{baseUrl}}/novedades/portada
 ### [201] Reel de Instagram
 # @name m1
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://www.instagram.com/reel/ABC123/?igsh=xyz", "tipo": "VIDEO" }
@@ -465,6 +444,7 @@ Content-Type: application/json
 ### [201] Video de YouTube
 # @name m2
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://youtu.be/abc123", "tipo": "VIDEO" }
@@ -472,6 +452,7 @@ Content-Type: application/json
 ### [201] Imagen
 # @name m3
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://ejemplo.com/foto.jpg", "tipo": "IMAGEN" }
@@ -482,60 +463,70 @@ GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
 
 ### [400] Video de un sitio que no esta permitido
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://sitio-raro.com/video", "tipo": "VIDEO" }
 
 ### [400] Video con http (sin la s)
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "http://youtube.com/watch?v=1", "tipo": "VIDEO" }
 
 ### [400] Dominio que imita a YouTube
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://youtube.com.sitio-malo.com/x", "tipo": "VIDEO" }
 
 ### [400] YouTube escondido en la ruta
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://sitio-malo.com/youtube.com", "tipo": "VIDEO" }
 
 ### [400] YouTube escondido como usuario
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://youtube.com@sitio-malo.com/x", "tipo": "VIDEO" }
 
 ### [400] Imagen con http
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "http://ejemplo.com/foto.jpg", "tipo": "IMAGEN" }
 
 ### [400] Direccion vacia
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "", "tipo": "VIDEO" }
 
 ### [400] Sin tipo
 POST {{baseUrl}}/eventos/{{evento.response.body.$.id}}/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://youtu.be/abc" }
 
 ### [404] Multimedia en un evento inexistente
 POST {{baseUrl}}/eventos/999999/multimedia
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "url": "https://youtu.be/abc", "tipo": "VIDEO" }
 
 ### [204] Quitar la imagen
 DELETE {{baseUrl}}/multimedia/{{m3.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [200] Ver el evento
 # "multimedia" tiene que traer solo 2
@@ -543,6 +534,7 @@ GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
 
 ### [404] Quitar una multimedia inexistente
 DELETE {{baseUrl}}/multimedia/999999
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 
 # =====================================================================
@@ -551,6 +543,7 @@ DELETE {{baseUrl}}/multimedia/999999
 
 ### [204] Borrar el evento (todavia tiene 2 multimedia y una novedad)
 DELETE {{baseUrl}}/eventos/{{evento.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [404] El evento ya no existe
 GET {{baseUrl}}/eventos/{{evento.response.body.$.id}}
@@ -561,6 +554,7 @@ GET {{baseUrl}}/novedades/portada
 
 ### [204] Borrar el taller (tiene un grupo)
 DELETE {{baseUrl}}/talleres/{{taller.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [404] El grupo se borro con el taller
 GET {{baseUrl}}/grupos/{{grupo.response.body.$.id}}
@@ -568,6 +562,7 @@ GET {{baseUrl}}/grupos/{{grupo.response.body.$.id}}
 ### [201] Segunda categoria (para probar la cascada de categoria)
 # @name cat2
 POST {{baseUrl}}/categorias-evento
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 { "nombre": "Ciclo de cine" }
@@ -575,6 +570,7 @@ Content-Type: application/json
 ### [201] Evento dentro de la segunda categoria
 # @name evento2
 POST {{baseUrl}}/eventos
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 Content-Type: application/json
 
 {
@@ -590,12 +586,14 @@ Content-Type: application/json
 
 ### [204] Borrar la segunda categoria (tiene un evento)
 DELETE {{baseUrl}}/categorias-evento/{{cat2.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [404] El evento se borro con su categoria
 GET {{baseUrl}}/eventos/{{evento2.response.body.$.id}}
 
 ### [204] Ana ya no tiene referencias (ni taller ni evento): se borra
 DELETE {{baseUrl}}/personas/{{ana.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 
 # =====================================================================
@@ -604,12 +602,15 @@ DELETE {{baseUrl}}/personas/{{ana.response.body.$.id}}
 
 ### [204] Borrar la categoria de prueba (se llevan sus eventos de hoy y pasado)
 DELETE {{baseUrl}}/categorias-evento/{{cat.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [204] Borrar novedad suelta 1
 DELETE {{baseUrl}}/novedades/{{novedadSuelta1.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [204] Borrar novedad suelta 2
 DELETE {{baseUrl}}/novedades/{{novedadSuelta2.response.body.$.id}}
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 ### [200] Verificacion final
 # Las portadas tienen que haber quedado vacias: []
@@ -617,3 +618,78 @@ GET {{baseUrl}}/novedades/portada
 
 ### [200] Verificacion final
 GET {{baseUrl}}/eventos/portada
+
+
+# =====================================================================
+# 12. CAMBIO DE CONTRASENA
+# (al final de esta seccion la contrasena vuelve a la original)
+# =====================================================================
+
+### [400] Contrasena actual incorrecta (errores.passwordActual)
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "incorrecta", "passwordNueva": "ClaveNueva2026" }
+
+### [400] Contrasena nueva demasiado corta (errores.passwordNueva)
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "corta" }
+
+### [400] Contrasena nueva igual a la actual (errores.passwordNueva)
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
+
+### [204] Cambiar la contrasena
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "{{$processEnv ADMIN_PASSWORD}}", "passwordNueva": "ClaveNueva2026" }
+
+### [204] Cerrar sesion
+POST {{baseUrl}}/auth/logout
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+
+### [403] Sin sesion no se puede cambiar la contrasena (el token ya no vale)
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "ClaveNueva2026", "passwordNueva": "OtraClave2026" }
+
+### [401] Login con la contrasena VIEJA
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
+
+### [204] Login con la contrasena NUEVA
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=ClaveNueva2026
+
+### [200] Token CSRF de la sesion nueva
+# @name csrf2
+GET {{baseUrl}}/auth/csrf
+
+### [204] VOLVER a la contrasena original (no te lo saltees)
+PUT {{baseUrl}}/auth/password
+X-CSRF-TOKEN: {{csrf2.response.body.$.token}}
+Content-Type: application/json
+
+{ "passwordActual": "ClaveNueva2026", "passwordNueva": "{{$processEnv ADMIN_PASSWORD}}" }
+
+### [204] Cerrar sesion
+POST {{baseUrl}}/auth/logout
+X-CSRF-TOKEN: {{csrf2.response.body.$.token}}
+
+### [401] Ya sin sesion
+GET {{baseUrl}}/auth/me

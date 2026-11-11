@@ -28,7 +28,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            // CSRF activo. Solo el login queda exento (hay una unica cuenta, ver ADR).
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login"))
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/error").permitAll()

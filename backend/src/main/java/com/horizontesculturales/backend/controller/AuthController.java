@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.horizontesculturales.backend.dto.CambioPasswordRequest;
 import com.horizontesculturales.backend.dto.UsuarioActualResponse;
 import com.horizontesculturales.backend.service.UsuarioService;
+import org.springframework.security.web.csrf.CsrfToken;
+
+import com.horizontesculturales.backend.dto.CsrfTokenResponse;
 
 import jakarta.validation.Valid;
 
@@ -32,6 +35,11 @@ public class AuthController {
             .map(autoridad -> autoridad.getAuthority().replace("ROLE_", ""))
             .orElse("");
         return new UsuarioActualResponse(authentication.getName(), rol);
+    }
+    
+    @GetMapping("/csrf")
+    public CsrfTokenResponse csrf(CsrfToken token) {
+        return new CsrfTokenResponse(token.getHeaderName(), token.getToken());
     }
 
     @PutMapping("/password")
