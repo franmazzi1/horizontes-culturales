@@ -317,7 +317,7 @@ Content-Type: application/json
 {
   "titulo": "Evento de hoy",
   "descripcion": "Descripción de prueba.",
-  "fecha": "2026-11-10",
+  "fecha": "{{fechaHoy}}",
   "horario": "20:00 hs",
   "lugar": "Sede central",
   "destacado": false,
@@ -693,3 +693,53 @@ X-CSRF-TOKEN: {{csrf2.response.body.$.token}}
 
 ### [401] Ya sin sesion
 GET {{baseUrl}}/auth/me
+
+
+# =====================================================================
+# 13. LIMITE DE INTENTOS DE LOGIN
+# OJO: esta seccion BLOQUEA el login de ese email durante 15 minutos.
+# Hacela siempre al final. Para desbloquear sin esperar, reinicia la app
+# (el contador vive en memoria).
+# =====================================================================
+
+### [401] Intento fallido 1 de 5
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=mala1
+
+### [401] Intento fallido 2 de 5
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=mala2
+
+### [401] Intento fallido 3 de 5
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=mala3
+
+### [401] Intento fallido 4 de 5
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=mala4
+
+### [401] Intento fallido 5 de 5 (este todavia responde 401, pero ya activa el bloqueo)
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password=mala5
+
+### [429] Bloqueado: incluso con la contrasena CORRECTA (mira el encabezado Retry-After)
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{$processEnv ADMIN_EMAIL}}&password={{$processEnv ADMIN_PASSWORD}}
+
+### [401] Otro email NO esta bloqueado (el limite es por email)
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email=otra.persona@ejemplo.com&password=cualquiera

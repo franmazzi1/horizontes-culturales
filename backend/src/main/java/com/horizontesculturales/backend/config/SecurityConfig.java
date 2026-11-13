@@ -1,18 +1,20 @@
 package com.horizontesculturales.backend.config;
 
-import java.io.IOException;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.horizontesculturales.backend.security.IntentosLogin;
+import com.horizontesculturales.backend.security.LimiteLoginFilter;
+import com.horizontesculturales.backend.security.RespuestaError;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -26,10 +28,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, IntentosLogin intentos) throws Exception {
         http
             // CSRF activo. Solo el login queda exento (hay una unica cuenta, ver ADR).
             .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login"))
+
+            .addFilterBefore(new LimiteLoginFilter(intentos), UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/error").permitAll()
@@ -47,10 +51,15 @@ public class SecurityConfig {
                 .loginProcessingUrl("/auth/login")
                 .usernameParameter("email")
                 .passwordParameter("password")
-                .successHandler((request, response, authentication) ->
-                    response.setStatus(HttpServletResponse.SC_NO_CONTENT))
-                .failureHandler((request, response, exception) ->
-                    escribirError(response, HttpStatus.UNAUTHORIZED, "Email o contraseña incorrectos"))
+                .successHandler((request, response, authentication) -> {
+                    intentos.registrarExito(request.getParameter("email"));
+                    response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                })
+                .failureHandler((request, response, exception) -> {
+                    intentos.registrarFallo(request.getParameter("email"));
+                    RespuestaError.escribir(response, HttpStatus.UNAUTHORIZED,
+                        "Email o contraseña incorrectos");
+                })
                 .permitAll())
 
             .logout(logout -> logout
@@ -63,15 +72,5 @@ public class SecurityConfig {
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
 
         return http.build();
-    }
-
-    private static void escribirError(HttpServletResponse response, HttpStatus estado, String detalle)
-            throws IOException {
-        response.setStatus(estado.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write("{\"status\":" + estado.value()
-            + ",\"title\":\"" + estado.getReasonPhrase()
-            + "\",\"detail\":\"" + detalle + "\"}");
     }
 }
