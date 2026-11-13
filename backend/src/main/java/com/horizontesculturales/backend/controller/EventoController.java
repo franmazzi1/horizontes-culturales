@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.horizontesculturales.backend.dto.CronicaRequest;
 import com.horizontesculturales.backend.dto.EventoRequest;
 import com.horizontesculturales.backend.dto.EventoResponse;
 import com.horizontesculturales.backend.service.EventoService;
@@ -63,6 +64,11 @@ public class EventoController {
     @PutMapping("/{id}")
     public EventoResponse actualizar(@PathVariable Long id, @Valid @RequestBody EventoRequest request) {
         return EventoResponse.desde(eventoService.actualizar(id, request));
+    }
+    @PutMapping("/{id}/cronica")
+    public EventoResponse actualizarCronica(@PathVariable Long id,
+                                            @Valid @RequestBody CronicaRequest request) {
+        return EventoResponse.desde(eventoService.actualizarCronica(id, request));
     }
 
     @DeleteMapping("/{id}")

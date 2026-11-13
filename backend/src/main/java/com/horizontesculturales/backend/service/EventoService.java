@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
+import com.horizontesculturales.backend.dto.CronicaRequest;
 import com.horizontesculturales.backend.dto.EventoRequest;
 import com.horizontesculturales.backend.exception.RecursoNoEncontradoException;
 import com.horizontesculturales.backend.model.CategoriaEvento;
@@ -89,6 +90,12 @@ public class EventoService {
         evento.setDestacado(request.destacado());
         evento.setCategoriaEvento(categoria);
         evento.setExpositores(expositores);
+        return eventoRepository.save(evento);
+    }
+    
+    public Evento actualizarCronica(Long id, CronicaRequest request) {
+        Evento evento = obtenerPorId(id);
+        evento.setCronica(request.cronica());
         return eventoRepository.save(evento);
     }
 

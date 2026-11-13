@@ -11,8 +11,9 @@ public interface NovedadRepository extends JpaRepository<Novedad, Long> {
 
     @Query("""
         select n from Novedad n
-        where (n.evento is null and n.destacado = true)
-           or n.evento.destacado = true
+        left join n.evento e
+        where (e is null and n.destacado = true)
+           or e.destacado = true
         order by n.fecha desc
         """)
     List<Novedad> findDestacadas();
