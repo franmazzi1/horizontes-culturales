@@ -22,6 +22,9 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    public static final String LOGIN_URL = "/api/auth/login";
+    public static final String LOGOUT_URL = "/api/auth/logout";
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -31,24 +34,38 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, IntentosLogin intentos) throws Exception {
         http
             // CSRF activo. Solo el login queda exento (hay una unica cuenta, ver ADR).
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login"))
+            .csrf(csrf -> csrf.ignoringRequestMatchers(LOGIN_URL))
 
-            .addFilterBefore(new LimiteLoginFilter(intentos), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new LimiteLoginFilter(intentos, LOGIN_URL), UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/error").permitAll()
+
+                // Datos publicos: solo lectura.
                 .requestMatchers(HttpMethod.GET,
-                    "/talleres/**",
-                    "/grupos/**",
-                    "/eventos/**",
-                    "/novedades/**",
-                    "/categorias-evento/**",
+                    "/api/talleres/**",
+                    "/api/grupos/**",
+                    "/api/eventos/**",
+                    "/api/novedades/**",
+                    "/api/categorias-evento/**",
                     "/actuator/health").permitAll()
+
+                // Paginas y archivos del sitio: son publicos. Lo protegido son los datos (/api).
+                .requestMatchers(HttpMethod.GET,
+                    "/",
+                    "/*.html",
+                    "/css/**",
+                    "/js/**",
+                    "/img/**",
+                    "/fonts/**",
+                    "/favicon.ico",
+                    "/admin/**").permitAll()
+
                 .anyRequest().hasRole("ADMIN"))
 
             .formLogin(form -> form
-                .loginPage("/auth/login")
-                .loginProcessingUrl("/auth/login")
+                .loginPage(LOGIN_URL)
+                .loginProcessingUrl(LOGIN_URL)
                 .usernameParameter("email")
                 .passwordParameter("password")
                 .successHandler((request, response, authentication) -> {
@@ -63,7 +80,7 @@ public class SecurityConfig {
                 .permitAll())
 
             .logout(logout -> logout
-                .logoutUrl("/auth/logout")
+                .logoutUrl(LOGOUT_URL)
                 .logoutSuccessHandler((request, response, authentication) ->
                     response.setStatus(HttpServletResponse.SC_NO_CONTENT))
                 .permitAll())

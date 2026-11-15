@@ -13,15 +13,17 @@ import jakarta.servlet.http.HttpServletResponse;
 public class LimiteLoginFilter extends OncePerRequestFilter {
 
     private final IntentosLogin intentos;
+    private final String urlLogin;
 
-    public LimiteLoginFilter(IntentosLogin intentos) {
+    public LimiteLoginFilter(IntentosLogin intentos, String urlLogin) {
         this.intentos = intentos;
+        this.urlLogin = urlLogin;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         boolean esLogin = "POST".equals(request.getMethod())
-            && "/auth/login".equals(request.getRequestURI());
+            && urlLogin.equals(request.getRequestURI());
         return !esLogin;
     }
 

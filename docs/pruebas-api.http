@@ -24,7 +24,7 @@
 # pedido y {{ana.response.body.$.id}} usa el id que devolvio.
 # =====================================================================
 
-@baseUrl = http://localhost:8080
+@baseUrl = http://localhost:8080/api
 @fechaFutura = 2026-12-20
 @fechaHoy = 2026-10-21
 @fechaPasada = 2026-09-01
