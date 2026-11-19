@@ -538,6 +538,49 @@ X-CSRF-TOKEN: {{csrf.response.body.$.token}}
 
 
 # =====================================================================
+# 9b. LISTADOS, PAGINACION Y BUSQUEDA (son publicos: no necesitan sesion)
+# Datos esperados si la base estaba limpia al empezar: 3 eventos
+# (futuro, de hoy y pasado) y 5 novedades (3 automaticas y 2 sueltas).
+# =====================================================================
+
+### [200] Novedades: primera pagina de 2 (totalElementos 5, totalPaginas 3)
+GET {{baseUrl}}/novedades?pagina=0&tamano=2
+
+### [200] Novedades: tercera pagina (queda 1 solo elemento)
+GET {{baseUrl}}/novedades?pagina=2&tamano=2
+
+### [200] Novedades: buscar "nUeVa" (no distingue mayusculas; trae "Nueva noticia")
+GET {{baseUrl}}/novedades?q=nUeVa
+
+### [200] Novedades: buscar algo que no existe (contenido [] y totalElementos 0)
+GET {{baseUrl}}/novedades?q=zzzzzz
+
+### [200] Novedades: un tamano exagerado se recorta (tamano 50)
+GET {{baseUrl}}/novedades?tamano=1000
+
+### [200] Eventos proximos: primero el de hoy, despues el futuro (orden por fecha)
+GET {{baseUrl}}/eventos/proximos
+
+### [200] Eventos proximos de una categoria (los 2)
+GET {{baseUrl}}/eventos/proximos?categoriaId={{cat.response.body.$.id}}
+
+### [200] Eventos proximos de una categoria que no existe ([])
+GET {{baseUrl}}/eventos/proximos?categoriaId=999999
+
+### [200] Eventos realizados: pagina de 1 (trae "Evento pasado", totalElementos 1)
+GET {{baseUrl}}/eventos/realizados?pagina=0&tamano=1
+
+### [200] Eventos realizados de una categoria
+GET {{baseUrl}}/eventos/realizados?categoriaId={{cat.response.body.$.id}}
+
+### [200] Todos los eventos (para el panel): del mas nuevo al mas viejo
+GET {{baseUrl}}/eventos?pagina=0&tamano=10
+
+### [200] Todos los eventos de una categoria
+GET {{baseUrl}}/eventos?categoriaId={{cat.response.body.$.id}}
+
+
+# =====================================================================
 # 10. BORRADOS EN CASCADA
 # =====================================================================
 

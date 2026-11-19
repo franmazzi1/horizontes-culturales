@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.horizontesculturales.backend.dto.CronicaRequest;
 import com.horizontesculturales.backend.dto.EventoRequest;
 import com.horizontesculturales.backend.dto.EventoResponse;
+import com.horizontesculturales.backend.dto.PaginaResponse;
 import com.horizontesculturales.backend.service.EventoService;
 
 import jakarta.validation.Valid;
@@ -31,8 +33,12 @@ public class EventoController {
     }
 
     @GetMapping
-    public List<EventoResponse> obtenerTodos() {
-        return eventoService.obtenerTodos().stream().map(EventoResponse::desde).toList();
+    public PaginaResponse<EventoResponse> obtenerTodos(
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "12") int tamano) {
+        return PaginaResponse.desde(
+            eventoService.obtenerTodos(categoriaId, pagina, tamano), EventoResponse::desde);
     }
 
     @GetMapping("/portada")
@@ -41,13 +47,17 @@ public class EventoController {
     }
 
     @GetMapping("/proximos")
-    public List<EventoResponse> obtenerProximos() {
-        return eventoService.obtenerProximos().stream().map(EventoResponse::desde).toList();
+    public List<EventoResponse> obtenerProximos(@RequestParam(required = false) Long categoriaId) {
+        return eventoService.obtenerProximos(categoriaId).stream().map(EventoResponse::desde).toList();
     }
 
     @GetMapping("/realizados")
-    public List<EventoResponse> obtenerRealizados() {
-        return eventoService.obtenerRealizados().stream().map(EventoResponse::desde).toList();
+    public PaginaResponse<EventoResponse> obtenerRealizados(
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "12") int tamano) {
+        return PaginaResponse.desde(
+            eventoService.obtenerRealizados(categoriaId, pagina, tamano), EventoResponse::desde);
     }
 
     @GetMapping("/{id}")
@@ -65,6 +75,7 @@ public class EventoController {
     public EventoResponse actualizar(@PathVariable Long id, @Valid @RequestBody EventoRequest request) {
         return EventoResponse.desde(eventoService.actualizar(id, request));
     }
+
     @PutMapping("/{id}/cronica")
     public EventoResponse actualizarCronica(@PathVariable Long id,
                                             @Valid @RequestBody CronicaRequest request) {

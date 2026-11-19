@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.horizontesculturales.backend.dto.NovedadRequest;
 import com.horizontesculturales.backend.dto.NovedadResponse;
+import com.horizontesculturales.backend.dto.PaginaResponse;
 import com.horizontesculturales.backend.service.NovedadService;
 
 import jakarta.validation.Valid;
@@ -27,6 +29,14 @@ public class NovedadController {
 
     public NovedadController(NovedadService novedadService) {
         this.novedadService = novedadService;
+    }
+
+    @GetMapping
+    public PaginaResponse<NovedadResponse> listar(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "10") int tamano) {
+        return PaginaResponse.desde(novedadService.listar(q, pagina, tamano), NovedadResponse::desde);
     }
 
     @GetMapping("/portada")

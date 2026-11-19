@@ -1,11 +1,14 @@
 package com.horizontesculturales.backend.service;
 
-import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.horizontesculturales.backend.dto.CronicaRequest;
 import com.horizontesculturales.backend.dto.EventoRequest;
@@ -14,11 +17,14 @@ import com.horizontesculturales.backend.model.CategoriaEvento;
 import com.horizontesculturales.backend.model.Evento;
 import com.horizontesculturales.backend.model.Persona;
 import com.horizontesculturales.backend.repository.EventoRepository;
-
-import org.springframework.transaction.annotation.Transactional;
+import com.horizontesculturales.backend.util.Fechas;
+import com.horizontesculturales.backend.util.Paginacion;
 
 @Service
 public class EventoService {
+
+    private static final Sort MAS_RECIENTES_PRIMERO =
+        Sort.by(Sort.Direction.DESC, "fecha").and(Sort.by(Sort.Direction.DESC, "id"));
 
     private final EventoRepository eventoRepository;
     private final NovedadService novedadService;
@@ -33,8 +39,12 @@ public class EventoService {
         this.personaService = personaService;
     }
 
-    public List<Evento> obtenerTodos() {
-        return eventoRepository.findAll();
+    public Page<Evento> obtenerTodos(Long categoriaId, int pagina, int tamano) {
+        Pageable pageable = Paginacion.pedir(pagina, tamano, MAS_RECIENTES_PRIMERO);
+        if (categoriaId == null) {
+            return eventoRepository.findAll(pageable);
+        }
+        return eventoRepository.findByCategoriaEventoId(categoriaId, pageable);
     }
 
     public Evento obtenerPorId(Long id) {
@@ -51,12 +61,20 @@ public class EventoService {
         return destacados;
     }
 
-    public List<Evento> obtenerProximos() {
-        return eventoRepository.findByFechaGreaterThanEqual(LocalDate.now());
+    public List<Evento> obtenerProximos(Long categoriaId) {
+        if (categoriaId == null) {
+            return eventoRepository.findByFechaGreaterThanEqualOrderByFechaAsc(Fechas.hoy());
+        }
+        return eventoRepository.findByFechaGreaterThanEqualAndCategoriaEventoIdOrderByFechaAsc(
+            Fechas.hoy(), categoriaId);
     }
 
-    public List<Evento> obtenerRealizados() {
-        return eventoRepository.findByFechaBefore(LocalDate.now());
+    public Page<Evento> obtenerRealizados(Long categoriaId, int pagina, int tamano) {
+        Pageable pageable = Paginacion.pedir(pagina, tamano, MAS_RECIENTES_PRIMERO);
+        if (categoriaId == null) {
+            return eventoRepository.findByFechaBefore(Fechas.hoy(), pageable);
+        }
+        return eventoRepository.findByFechaBeforeAndCategoriaEventoId(Fechas.hoy(), categoriaId, pageable);
     }
 
     @Transactional
@@ -64,15 +82,12 @@ public class EventoService {
         CategoriaEvento categoria = categoriaEventoService.obtenerPorId(request.categoriaId());
         Set<Persona> expositores = obtenerExpositores(request.expositorIds());
 
-                Evento evento = new Evento(request.titulo(), request.descripcion(), request.fecha(),
+        Evento evento = new Evento(request.titulo(), request.descripcion(), request.fecha(),
                                    request.horario(), request.lugar(), request.destacado(), categoria);
         evento.setExpositores(expositores);
         Evento eventoGuardado = eventoRepository.save(evento);
 
         novedadService.crearParaEvento(eventoGuardado);
-        if ("FALLAR".equals(request.titulo())) {
-            throw new RuntimeException("prueba de rollback");
-        }
 
         return eventoGuardado;
     }
@@ -92,7 +107,7 @@ public class EventoService {
         evento.setExpositores(expositores);
         return eventoRepository.save(evento);
     }
-    
+
     public Evento actualizarCronica(Long id, CronicaRequest request) {
         Evento evento = obtenerPorId(id);
         evento.setCronica(request.cronica());
