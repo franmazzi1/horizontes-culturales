@@ -317,7 +317,7 @@ Content-Type: application/json
 {
   "titulo": "Evento de hoy",
   "descripcion": "Descripción de prueba.",
-  "fecha": "{{fechaHoy}}",
+  "fecha": "2026-11-19",
   "horario": "20:00 hs",
   "lugar": "Sede central",
   "destacado": false,
